@@ -1,0 +1,26 @@
+# build output
+build/
+output/
+*.o
+*.a
+*.so
+*.elf
+*.bin
+*.hex
+*.map
+*.img
+
+# cmake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+
+# python
+__pycache__/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# editors
+.vscode/
