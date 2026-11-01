@@ -1,18 +1,21 @@
 /*
- * obd-ii service 0x01 requests and replies over can (iso 15765-4, 11-bit ids).
- * no sockets here, so everything in this file can be unit tested on any machine.
+ * obd-ii service 0x01 requests and replies (iso 15765-4, 11-bit ids).
+ * works on iso-tp payloads: the kernel's iso-tp socket adds and strips the length byte and
+ * padding, and splits and joins long messages. no sockets here, so it unit tests anywhere.
  */
 #pragma once
 
 #include <linux/can.h>
 
+#include <array>
 #include <cstdint>
 #include <optional>
+#include <span>
 
 namespace obd {
 
-constexpr canid_t kRequestId = 0x7DF;      // functional request: any ecu answers
-constexpr canid_t kEngineReplyId = 0x7E8;  // engine ecu's replies
+constexpr canid_t kEngineRequestId = 0x7E0;  // physical request to the engine ecu
+constexpr canid_t kEngineReplyId = 0x7E8;    // engine ecu's replies
 
 constexpr uint8_t kServiceCurrentData = 0x01;
 constexpr uint8_t kReplyOffset = 0x40;  // positive reply = service + 0x40
@@ -30,18 +33,21 @@ struct Reading {
     double value;
 };
 
-/**
- * @brief Decode a service 0x01 reply frame.
- * @param frame a received frame, expected on kEngineReplyId
- * @return the reading, or std::nullopt if the frame isn't a valid reply for a supported pid
- */
-std::optional<Reading> decode(const can_frame& frame);
+/// a service 0x01 request payload: service, pid
+using Request = std::array<uint8_t, 2>;
 
 /**
- * @brief Build a service 0x01 request frame for one pid.
- * @param pid the parameter id to ask for
- * @return the frame to send: id kRequestId, 8 bytes, unused bytes zero
+ * @brief Decode a service 0x01 reply payload.
+ * @param payload the bytes an iso-tp read returned, e.g. 41 0c 1b 05
+ * @return the reading, or std::nullopt if it isn't a valid reply for a supported pid
  */
-can_frame make_request(uint8_t pid);
+std::optional<Reading> decode(std::span<const uint8_t> payload);
+
+/**
+ * @brief Build a service 0x01 request payload for one pid.
+ * @param pid the parameter id to ask for
+ * @return the two bytes to write to an iso-tp socket
+ */
+Request make_request(uint8_t pid);
 
 }  // namespace obd

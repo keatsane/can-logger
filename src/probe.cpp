@@ -1,11 +1,12 @@
 #include <linux/can.h>
-#include <linux/can/raw.h>
+#include <linux/can/isotp.h>
 #include <net/if.h>
 #include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
 #include <cerrno>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 
@@ -33,27 +34,32 @@ int fail(const char* what) {
 }
 
 int main() {
-    Fd fd(socket(PF_CAN, SOCK_RAW, CAN_RAW));
+    // iso-tp: the kernel handles the length byte, padding and multi-frame messages
+    Fd fd(socket(PF_CAN, SOCK_DGRAM, CAN_ISOTP));
     if (fd.value < 0) return fail("socket");
+
+    // obd-ii on can always sends full 8-byte frames, so pad what we send. must come before bind
+    can_isotp_options opts{};
+    opts.flags = CAN_ISOTP_TX_PADDING;
+    opts.txpad_content = 0x00;
+    if (setsockopt(fd.value, SOL_CAN_ISOTP, CAN_ISOTP_OPTS, &opts, sizeof(opts)) < 0)
+        return fail("setsockopt");
 
     // interface name -> the number the kernel uses for it
     unsigned int ifindex = if_nametoindex("can_obd");
     if (ifindex == 0) return fail("can_obd");
 
+    // send on 7e0, only accept 7e8: the socket filters for us
     sockaddr_can addr{};
     addr.can_family = AF_CAN;
     addr.can_ifindex = static_cast<int>(ifindex);
+    addr.can_addr.tp.tx_id = obd::kEngineRequestId;
+    addr.can_addr.tp.rx_id = obd::kEngineReplyId;
     if (bind(fd.value, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) return fail("bind");
 
-    // only engine ecu replies: all 11 id bits, standard-id data frames only
-    can_filter filter{};
-    filter.can_id = obd::kEngineReplyId;
-    filter.can_mask = CAN_EFF_FLAG | CAN_RTR_FLAG | CAN_SFF_MASK;
-    if (setsockopt(fd.value, SOL_CAN_RAW, CAN_RAW_FILTER, &filter, sizeof(filter)) < 0)
-        return fail("setsockopt");
-
-    can_frame req = obd::make_request(obd::pid::kRpm);
-    if (write(fd.value, &req, sizeof(req)) != sizeof(req)) return fail("write");
+    obd::Request req = obd::make_request(obd::pid::kRpm);
+    if (write(fd.value, req.data(), req.size()) != static_cast<ssize_t>(req.size()))
+        return fail("write");
 
     pollfd pfd{};
     pfd.fd = fd.value;
@@ -65,10 +71,11 @@ int main() {
         return 1;
     }
 
-    can_frame resp{};
-    if (read(fd.value, &resp, sizeof(resp)) != sizeof(resp)) return fail("read");
+    uint8_t buf[64];  // a whole reply, however many frames it took
+    ssize_t len = read(fd.value, buf, sizeof(buf));
+    if (len < 0) return fail("read");
 
-    auto reading = obd::decode(resp);
+    auto reading = obd::decode({buf, static_cast<size_t>(len)});
     if (!reading || reading->pid != obd::pid::kRpm) {
         std::fprintf(stderr, "unexpected reply\n");
         return 1;
