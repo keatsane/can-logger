@@ -80,8 +80,10 @@ def handle(sock, can_id, data, t, counts, quiet):
     service = data[1]
     if service not in READ_ONLY:
         counts["forbidden"] += 1
-        print(f"!! {req}  service 0x{service:02X} is not an allowed obd-ii service"
-              " - the logger must never send this")
+        print(
+            f"!! {req}  service 0x{service:02X} is not an allowed obd-ii service"
+            " - the logger must never send this"
+        )
         return
     if service != 0x01 or length < 2:
         counts["unanswered"] += 1
@@ -104,25 +106,36 @@ def handle(sock, can_id, data, t, counts, quiet):
 
 def main():
     parser = argparse.ArgumentParser(description="fake engine ecu for bench testing")
-    parser.add_argument("iface", nargs="?", default="can_ecu",
-                        help="socketcan interface (default can_ecu)")
+    parser.add_argument(
+        "iface", nargs="?", default="can_ecu", help="socketcan interface (default can_ecu)"
+    )
     parser.add_argument("-q", "--quiet", action="store_true", help="only print problems")
     args = parser.parse_args()
 
     sock = open_socket(args.iface)
     counts = {"answered": 0, "unanswered": 0, "forbidden": 0}
     start = time.monotonic()
-    print(f"fake ecu on {args.iface}, answering {FUNCTIONAL_ID:03X}/{PHYSICAL_ID:03X}"
-          f" on {REPLY_ID:03X}")
+    print(
+        f"fake ecu on {args.iface}, answering {FUNCTIONAL_ID:03X}/{PHYSICAL_ID:03X}"
+        f" on {REPLY_ID:03X}"
+    )
     try:
         while True:
             can_id, dlc, data = CAN_FRAME.unpack(sock.recv(CAN_FRAME.size))
-            handle(sock, can_id & socket.CAN_SFF_MASK, data[:dlc], time.monotonic() - start,
-                   counts, args.quiet)
+            handle(
+                sock,
+                can_id & socket.CAN_SFF_MASK,
+                data[:dlc],
+                time.monotonic() - start,
+                counts,
+                args.quiet,
+            )
     except KeyboardInterrupt:
         pass
-    print(f"\nanswered {counts['answered']}, unanswered {counts['unanswered']}, "
-          f"forbidden {counts['forbidden']}")
+    print(
+        f"\nanswered {counts['answered']}, unanswered {counts['unanswered']}, "
+        f"forbidden {counts['forbidden']}"
+    )
 
 
 if __name__ == "__main__":
