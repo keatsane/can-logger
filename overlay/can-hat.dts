@@ -1,0 +1,86 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2712";
+
+	// the two 16 MHz crystals
+	fragment@0 {
+		target-path = "/clocks";
+		__overlay__ {
+			// clock node for chip 0
+			can0_osc: can0-osc {
+				compatible = "fixed-clock";
+				#clock-cells = <0>;
+				clock-frequency = <16000000>;
+			};
+			// clock node for chip 1
+			can1_osc: can1-osc {
+				compatible = "fixed-clock";
+				#clock-cells = <0>;
+				clock-frequency = <16000000>;
+			};
+		};
+	};
+
+	// pin setup
+	fragment@1 {
+		target = <&rp1_gpio>;
+		__overlay__ {
+			// cs pins: gpio 17, 16 as outputs
+			can_cs_pins: can-cs-pins {
+				brcm,function = <1>;
+				brcm,pins = <17 16>;
+			};			
+			// int pin for chip 0: gpio 22 as input
+			can0_int_pin: can0-int-pin {
+				brcm,function = <0>;
+				brcm,pins = <22>;
+			};
+			// int pin for chip 1: gpio 13 as input
+			can1_int_pin: can1-int-pin {
+				brcm,function = <0>;
+				brcm,pins = <13>;
+			};
+		};
+	};
+
+	// spi1 and the two chips
+	fragment@2 {
+		target = <&spi1>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			// spi1 wiring properties
+			pinctrl-names = "default";
+			num-cs = <2>;
+			pinctrl-0 = <&rp1_spi1_gpio19 &can_cs_pins>;
+			status = "okay";
+			cs-gpios = <&rp1_gpio 17 1>, <&rp1_gpio 16 1>;
+
+			// chip 0 node
+			mcp2515@0 {
+				pinctrl-names = "default";
+				pinctrl-0 = <&can0_int_pin>;
+				interrupts = <22 8>;			// gpio 22, level low
+				clocks = <&can0_osc>;
+				spi-max-frequency = <10000000>;
+				interrupt-parent = <&rp1_gpio>;
+				compatible = "microchip,mcp2515";
+				reg = <0>;				// cs 0, gpio 17
+			};
+			// chip 1 node
+			mcp2515@1 {
+				pinctrl-names = "default";
+				pinctrl-0 = <&can1_int_pin>;
+				interrupts = <13 8>;			// gpio 13, level low
+				clocks = <&can1_osc>;
+				spi-max-frequency = <10000000>;
+				interrupt-parent = <&rp1_gpio>;
+				compatible = "microchip,mcp2515";
+				reg = <1>;				// cs 1, gpio 16
+			}; 
+		};
+	};
+};
