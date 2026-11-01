@@ -5,9 +5,20 @@ namespace obd {
 std::optional<Reading> decode(const can_frame& frame) {
     if (frame.len != 8) return std::nullopt;
     if (frame.data[1] != kServiceCurrentData + kReplyOffset) return std::nullopt;
-    if (frame.data[2] != pid::kRpm || frame.data[0] < 4) return std::nullopt;
 
-    return Reading{frame.data[2], (frame.data[3] * 256 + frame.data[4]) / 4.0};
+    switch (frame.data[2]) {
+        case pid::kCoolant:
+            if (frame.data[0] != 3) return std::nullopt;  // service, pid, a
+            return Reading{pid::kCoolant, frame.data[3] - 40.0};
+        case pid::kRpm:
+            if (frame.data[0] != 4) return std::nullopt;  // service, pid, a, b
+            return Reading{pid::kRpm, (frame.data[3] * 256 + frame.data[4]) / 4.0};
+        case pid::kSpeed:
+            if (frame.data[0] != 3) return std::nullopt;  // service, pid, a
+            return Reading{pid::kSpeed, static_cast<double>(frame.data[3])};
+        default:
+            return std::nullopt;
+    }
 }
 
 }  // namespace obd
