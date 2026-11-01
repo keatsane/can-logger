@@ -7,6 +7,8 @@
 
 namespace {
 
+constexpr uint8_t kUnsupportedPid = 0xFF;  // not one we decode
+
 // a reply as the ecu sends it: id 7e8, 8 bytes, unused bytes padded with 0x55
 can_frame reply(std::initializer_list<uint8_t> bytes) {
     can_frame f{};
@@ -22,13 +24,14 @@ can_frame reply(std::initializer_list<uint8_t> bytes) {
 TEST(Decode, Rpm) {
     auto r = obd::decode(reply({0x04, 0x41, 0x0C, 0x1B, 0x05}));
     ASSERT_TRUE(r.has_value());
-    EXPECT_EQ(r->pid, 0x0C);
+    EXPECT_EQ(r->pid, obd::pid::kRpm);
     EXPECT_DOUBLE_EQ(r->value, 1729.25);
 }
 
 TEST(Decode, RpmMax) {
     auto r = obd::decode(reply({0x04, 0x41, 0x0C, 0xFF, 0xFF}));
     ASSERT_TRUE(r.has_value());
+    EXPECT_EQ(r->pid, obd::pid::kRpm);
     EXPECT_DOUBLE_EQ(r->value, 16383.75);
 }
 
@@ -43,7 +46,7 @@ TEST(Decode, TooShort) {
 }
 
 TEST(Decode, UnknownPid) {
-    auto r = obd::decode(reply({0x04, 0x41, 0x2F, 0x1B, 0x05}));
+    auto r = obd::decode(reply({0x04, 0x41, kUnsupportedPid, 0x1B, 0x05}));
     EXPECT_FALSE(r.has_value());
 }
 
