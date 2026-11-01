@@ -11,4 +11,4 @@ An embedded Linux data logger for a car's diagnostic CAN bus. A small Linux boar
 The logger only listens and sends standard read-only OBD-II requests. It never clears trouble codes, writes to a module, or opens a diagnostic session. Every new request type is tested against the bench ECU before it goes on the car.
 
 ## Status
-In progress. Both CAN channels run on the bench using the overlay in `overlay/can-hat.dts`. The logger is not written yet.
+In progress. Both CAN channels run on the bench using the overlay in `overlay/can-hat.dts`, with a fake ECU answering OBD-II requests; see [docs/bench.md](docs/bench.md) for the setup and measurements and [docs/bom.md](docs/bom.md) for parts. The logger is not written yet.
