@@ -37,4 +37,11 @@ struct Reading {
  */
 std::optional<Reading> decode(const can_frame& frame);
 
+/**
+ * @brief Build a service 0x01 request frame for one pid.
+ * @param pid the parameter id to ask for
+ * @return the frame to send: id kRequestId, 8 bytes, unused bytes zero
+ */
+can_frame make_request(uint8_t pid);
+
 }  // namespace obd

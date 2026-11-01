@@ -18,6 +18,7 @@ target_include_directories(obd PUBLIC src)
 
 # one request, one reply
 add_executable(probe src/probe.cpp)
+target_link_libraries(probe PRIVATE obd)
 
 # unit tests, built wherever googletest is installed (sudo apt install libgtest-dev)
 include(CTest)

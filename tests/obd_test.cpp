@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <initializer_list>
 
 namespace {
@@ -17,6 +18,14 @@ can_frame reply(std::initializer_list<uint8_t> bytes) {
     std::fill(std::begin(f.data), std::end(f.data), 0x55);
     std::copy(bytes.begin(), bytes.end(), f.data);
     return f;
+}
+
+// a frame's 8 data bytes as one value, so a test compares them all at once
+using Payload = std::array<uint8_t, 8>;
+Payload payload(const can_frame& f) {
+    Payload p{};
+    std::copy(std::begin(f.data), std::end(f.data), p.begin());
+    return p;
 }
 
 }  // namespace
@@ -93,4 +102,21 @@ TEST(Decode, SpeedMax) {
     ASSERT_TRUE(r.has_value());
     EXPECT_EQ(r->pid, obd::pid::kSpeed);
     EXPECT_DOUBLE_EQ(r->value, 255);
+}
+
+TEST(MakeRequest, Coolant) {
+    auto f = obd::make_request(obd::pid::kCoolant);
+    EXPECT_EQ(payload(f), (Payload{0x02, 0x01, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00}));
+}
+
+TEST(MakeRequest, Rpm) {
+    auto f = obd::make_request(obd::pid::kRpm);
+    EXPECT_EQ(f.can_id, 0x7DFu);
+    EXPECT_EQ(f.len, 8);
+    EXPECT_EQ(payload(f), (Payload{0x02, 0x01, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00}));
+}
+
+TEST(MakeRequest, Speed) {
+    auto f = obd::make_request(obd::pid::kSpeed);
+    EXPECT_EQ(payload(f), (Payload{0x02, 0x01, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00}));
 }

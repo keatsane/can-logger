@@ -21,4 +21,14 @@ std::optional<Reading> decode(const can_frame& frame) {
     }
 }
 
+can_frame make_request(uint8_t pid) {
+    can_frame f{};
+    f.can_id = kRequestId;
+    f.len = 8;
+    f.data[0] = 2;  // service, pid
+    f.data[1] = kServiceCurrentData;
+    f.data[2] = pid;
+    return f;
+}
+
 }  // namespace obd

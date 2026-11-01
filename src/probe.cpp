@@ -9,6 +9,8 @@
 #include <cstdio>
 #include <cstring>
 
+#include "obd.hpp"
+
 // owns a file descriptor and closes it when it goes out of scope
 struct Fd {
     int value;
@@ -45,18 +47,12 @@ int main() {
 
     // only engine ecu replies: all 11 id bits, standard-id data frames only
     can_filter filter{};
-    filter.can_id = 0x7E8;
+    filter.can_id = obd::kEngineReplyId;
     filter.can_mask = CAN_EFF_FLAG | CAN_RTR_FLAG | CAN_SFF_MASK;
     if (setsockopt(fd.value, SOL_CAN_RAW, CAN_RAW_FILTER, &filter, sizeof(filter)) < 0)
         return fail("setsockopt");
 
-    // 02 01 0c: two bytes follow, service 01, pid 0c (rpm)
-    can_frame req{};
-    req.can_id = 0x7DF;
-    req.len = 8;
-    req.data[0] = 0x02;
-    req.data[1] = 0x01;
-    req.data[2] = 0x0C;
+    can_frame req = obd::make_request(obd::pid::kRpm);
     if (write(fd.value, &req, sizeof(req)) != sizeof(req)) return fail("write");
 
     pollfd pfd{};
@@ -72,13 +68,12 @@ int main() {
     can_frame resp{};
     if (read(fd.value, &resp, sizeof(resp)) != sizeof(resp)) return fail("read");
 
-    // expect 04 41 0c a b: four bytes follow, reply to service 01, pid 0c
-    if (resp.len != 8 || resp.data[0] < 4 || resp.data[1] != 0x41 || resp.data[2] != 0x0C) {
+    auto reading = obd::decode(resp);
+    if (!reading || reading->pid != obd::pid::kRpm) {
         std::fprintf(stderr, "unexpected reply\n");
         return 1;
     }
 
-    double rpm = (resp.data[3] * 256 + resp.data[4]) / 4.0;
-    std::printf("rpm: %.2f\n", rpm);
+    std::printf("rpm: %.2f\n", reading->value);
     return 0;
 }
