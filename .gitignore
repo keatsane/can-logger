@@ -9,6 +9,7 @@ output/
 *.hex
 *.map
 *.img
+*.dtbo
 
 # cmake
 CMakeFiles/
