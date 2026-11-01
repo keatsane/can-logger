@@ -6,7 +6,7 @@ an engine ECU would, with values that change over time like a short drive.
 Any request outside the allowed read-only OBD-II services (0x01, 0x02, 0x03,
 0x07, 0x09) is flagged, since the logger must never send one.
 
-    python3 tools/fake_ecu.py can1
+    python3 tools/fake_ecu.py can_ecu
 """
 
 import argparse
@@ -104,8 +104,8 @@ def handle(sock, can_id, data, t, counts, quiet):
 
 def main():
     parser = argparse.ArgumentParser(description="fake engine ecu for bench testing")
-    parser.add_argument("iface", nargs="?", default="can1",
-                        help="socketcan interface (default can1)")
+    parser.add_argument("iface", nargs="?", default="can_ecu",
+                        help="socketcan interface (default can_ecu)")
     parser.add_argument("-q", "--quiet", action="store_true", help="only print problems")
     args = parser.parse_args()
 

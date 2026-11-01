@@ -1,0 +1,6 @@
+# board terminal CAN0 (spi1 cs 0, gpio 17 / int 22) - the logger's channel, goes to the car
+[Match]
+Path=platform-1f00054000.spi-cs-0
+
+[Link]
+Name=can_obd

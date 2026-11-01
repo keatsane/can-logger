@@ -1,0 +1,6 @@
+# board terminal CAN1 (spi1 cs 1, gpio 16 / int 13) - bench only, runs the fake ecu
+[Match]
+Path=platform-1f00054000.spi-cs-1
+
+[Link]
+Name=can_ecu
