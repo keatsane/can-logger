@@ -1,0 +1,3 @@
+#!/bin/sh
+# refuse the commit if formatting is off or a test fails. skip once with git commit --no-verify
+exec just check

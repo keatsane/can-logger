@@ -16,6 +16,15 @@ build:
 test: build
     ctest --test-dir build --output-on-failure
 
+# what the pre-commit hook runs: formatting is clean and the tests pass
+check:
+    clang-format --dry-run --Werror src/*.cpp src/*.hpp tests/*.cpp
+    just test
+
+# use the hooks in tools/hooks (once per clone)
+hooks:
+    git config core.hooksPath tools/hooks
+
 # clang-format the c++ in place (python is formatted by black on save in vs code)
 format:
     clang-format -i src/*.cpp src/*.hpp tests/*.cpp
