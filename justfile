@@ -22,11 +22,19 @@ tsan:
     cmake --build build-tsan --target unit_tests
     setarch -R ctest --test-dir build-tsan --output-on-failure
 
-# what the pre-commit hook runs: formatting is clean and the tests pass, plain and under tsan
+# the unit tests again under address + undefined-behavior sanitizers: dangling pointers,
+# out-of-bounds reads, leaks, signed overflow. can't share a build with tsan
+asan:
+    cmake -S . -B build-asan -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer" "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined"
+    cmake --build build-asan --target unit_tests
+    setarch -R ctest --test-dir build-asan --output-on-failure
+
+# what the pre-commit hook runs: formatting is clean and the tests pass plain and under each sanitizer
 check:
     clang-format --dry-run --Werror src/*.cpp src/*.hpp tests/*.cpp
     just test
     just tsan
+    just asan
 
 # use the hooks in tools/hooks (once per clone)
 hooks:
