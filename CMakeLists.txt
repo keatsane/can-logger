@@ -16,9 +16,13 @@ add_compile_options(-Wall -Wextra -Wpedantic -Wshadow)
 add_library(obd src/obd.cpp)
 target_include_directories(obd PUBLIC src)
 
+# the iso-tp socket wrapper, linux only
+add_library(isotp_socket src/isotp_socket.cpp)
+target_include_directories(isotp_socket PUBLIC src)
+
 # one request, one reply
 add_executable(probe src/probe.cpp)
-target_link_libraries(probe PRIVATE obd)
+target_link_libraries(probe PRIVATE obd isotp_socket)
 
 # unit tests, built wherever googletest is installed (sudo apt install libgtest-dev)
 include(CTest)
