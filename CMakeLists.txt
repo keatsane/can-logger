@@ -36,7 +36,7 @@ target_link_libraries(probe PRIVATE obd isotp_socket)
 
 # the logger: polls on a schedule, prints a status line
 add_executable(logger src/logger.cpp)
-target_link_libraries(logger PRIVATE obd isotp_socket scheduler)
+target_link_libraries(logger PRIVATE obd isotp_socket scheduler bounded_queue)
 
 # unit tests, built wherever googletest is installed (sudo apt install libgtest-dev)
 include(CTest)
