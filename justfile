@@ -41,6 +41,10 @@ pi-build: sync
 probe: pi-build
     ssh {{pi}} 'can-logger/build/probe'
 
-# run the fake ecu on the pi (ctrl-c stops it)
-fake-ecu: sync
-    ssh -t {{pi}} 'python3 can-logger/tools/fake_ecu.py'
+# sync, build on the pi, run the logger there (ctrl-c stops it)
+logger: pi-build
+    ssh -t {{pi}} 'can-logger/build/logger'
+
+# run the fake ecu on the pi (ctrl-c stops it). `just fake-ecu -q` only prints problems
+fake-ecu *args: sync
+    ssh -t {{pi}} 'python3 can-logger/tools/fake_ecu.py {{args}}'

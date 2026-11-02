@@ -28,6 +28,10 @@ target_include_directories(isotp_socket PUBLIC src)
 add_executable(probe src/probe.cpp)
 target_link_libraries(probe PRIVATE obd isotp_socket)
 
+# the logger: polls on a schedule, prints a status line
+add_executable(logger src/logger.cpp)
+target_link_libraries(logger PRIVATE obd isotp_socket scheduler)
+
 # unit tests, built wherever googletest is installed (sudo apt install libgtest-dev)
 include(CTest)
 find_package(GTest QUIET)
