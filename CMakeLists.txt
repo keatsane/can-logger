@@ -22,6 +22,11 @@ target_link_libraries(bounded_queue INTERFACE Threads::Threads)
 add_library(obd src/obd.cpp)
 target_include_directories(obd PUBLIC src)
 
+# the on-disk record format and crc32, no hardware
+add_library(record src/record.cpp)
+target_include_directories(record PUBLIC src)
+target_link_libraries(record PUBLIC obd)
+
 # which pid to poll next, no hardware
 add_library(scheduler src/scheduler.cpp)
 target_include_directories(scheduler PUBLIC src)
@@ -47,8 +52,8 @@ endif()
 if(BUILD_TESTING AND GTest_FOUND)
   include(GoogleTest)
   add_executable(unit_tests tests/obd_test.cpp tests/scheduler_test.cpp
-                            tests/bounded_queue_test.cpp)
-  target_link_libraries(unit_tests PRIVATE obd scheduler bounded_queue GTest::gtest_main)
+                            tests/bounded_queue_test.cpp tests/record_test.cpp)
+  target_link_libraries(unit_tests PRIVATE obd scheduler bounded_queue record GTest::gtest_main)
   # list the tests when ctest runs, not at build time, so `setarch -R` in `just tsan` covers it too
   gtest_discover_tests(unit_tests DISCOVERY_MODE PRE_TEST)
 endif()
