@@ -16,10 +16,17 @@ build:
 test: build
     ctest --test-dir build --output-on-failure
 
-# what the pre-commit hook runs: formatting is clean and the tests pass
+# the unit tests again under threadsanitizer, which fails on any data race between threads
+tsan:
+    cmake -S . -B build-tsan -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=-fsanitize=thread -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread
+    cmake --build build-tsan --target unit_tests
+    setarch -R ctest --test-dir build-tsan --output-on-failure
+
+# what the pre-commit hook runs: formatting is clean and the tests pass, plain and under tsan
 check:
     clang-format --dry-run --Werror src/*.cpp src/*.hpp tests/*.cpp
     just test
+    just tsan
 
 # use the hooks in tools/hooks (once per clone)
 hooks:

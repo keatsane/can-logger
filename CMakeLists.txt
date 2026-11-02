@@ -11,6 +11,12 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 add_compile_options(-Wall -Wextra -Wpedantic -Wshadow)
+find_package(Threads REQUIRED)
+
+# the thread-safe queue between logger threads, header only
+add_library(bounded_queue INTERFACE)
+target_include_directories(bounded_queue INTERFACE src)
+target_link_libraries(bounded_queue INTERFACE Threads::Threads)
 
 # obd-ii encode/decode, no hardware
 add_library(obd src/obd.cpp)
@@ -40,7 +46,9 @@ if(BUILD_TESTING AND NOT GTest_FOUND)
 endif()
 if(BUILD_TESTING AND GTest_FOUND)
   include(GoogleTest)
-  add_executable(unit_tests tests/obd_test.cpp tests/scheduler_test.cpp)
-  target_link_libraries(unit_tests PRIVATE obd scheduler GTest::gtest_main)
-  gtest_discover_tests(unit_tests)
+  add_executable(unit_tests tests/obd_test.cpp tests/scheduler_test.cpp
+                            tests/bounded_queue_test.cpp)
+  target_link_libraries(unit_tests PRIVATE obd scheduler bounded_queue GTest::gtest_main)
+  # list the tests when ctest runs, not at build time, so `setarch -R` in `just tsan` covers it too
+  gtest_discover_tests(unit_tests DISCOVERY_MODE PRE_TEST)
 endif()
