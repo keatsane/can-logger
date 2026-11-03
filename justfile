@@ -56,9 +56,9 @@ pi-build: sync
 probe: pi-build
     ssh {{pi}} 'can-logger/build/probe'
 
-# sync, build on the pi, run the logger there (ctrl-c stops it)
+# sync, build on the pi, run the logger there (ctrl-c stops it). logs go in ~/logs
 logger: pi-build
-    ssh -t {{pi}} 'can-logger/build/logger'
+    ssh -t {{pi}} 'mkdir -p logs && cd logs && ../can-logger/build/logger'
 
 # run the fake ecu on the pi (ctrl-c stops it). `just fake-ecu -q` only prints problems
 fake-ecu *args: sync

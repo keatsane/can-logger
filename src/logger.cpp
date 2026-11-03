@@ -2,13 +2,17 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <ctime>
 #include <optional>
+#include <string>
 #include <system_error>
 #include <thread>
 
 #include "bounded_queue.hpp"
 #include "isotp_socket.hpp"
+#include "log_file.hpp"
 #include "obd.hpp"
+#include "record.hpp"
 #include "scheduler.hpp"
 
 using namespace std::chrono_literals;
@@ -24,6 +28,28 @@ constexpr PollEntry kPolls[] = {
 constexpr Clock::duration kMinGap = 200ms;
 constexpr int kReplyTimeoutMs = 100;
 constexpr Clock::duration kStatusEvery = 1s;
+
+// a reading plus when its reply arrived
+struct Stamped {
+    uint64_t time_us;  // microseconds since the unix epoch
+    obd::Reading reading;
+};
+
+// wall-clock time now, in microseconds since the unix epoch
+uint64_t now_us() {
+    auto since_epoch = std::chrono::system_clock::now().time_since_epoch();
+    return std::chrono::duration_cast<std::chrono::microseconds>(since_epoch).count();
+}
+
+// file name from the start time in utc, e.g. can-20261103-142501.bin
+std::string session_name() {
+    std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::tm tm{};
+    gmtime_r(&now, &tm);
+    char buf[32];
+    std::strftime(buf, sizeof(buf), "can-%Y%m%d-%H%M%S.bin", &tm);
+    return buf;
+}
 
 // what the writer has seen so far
 struct Stats {
@@ -64,7 +90,10 @@ int main() {
     try {
         // shared by the threads below, so created before any of them start
         IsoTpSocket sock("can_obd", obd::kEngineRequestId, obd::kEngineReplyId);
-        BoundedQueue<obd::Reading, 64> readings;
+        std::string name = session_name();
+        LogFile file(name.c_str());
+        std::printf("logging to %s\n", name.c_str());
+        BoundedQueue<Stamped, 64> readings;
         std::atomic<bool> running{true};
         std::atomic<unsigned> sent{0};
         std::atomic<unsigned> bad{0};
@@ -100,7 +129,7 @@ int main() {
                         ++bad;
                         continue;
                     }
-                    readings.try_push(*reading);
+                    readings.try_push(Stamped{now_us(), *reading});
                 }
             } catch (const std::system_error& e) {
                 std::fprintf(stderr, "receiver: %s\n", e.what());
@@ -108,31 +137,40 @@ int main() {
             }
         });
 
-        // writer, on this thread: takes readings off the queue, prints the status line
+        // writer, on this thread: takes readings off the queue, prints the status line, and writes
+        // each reading to the log
         Stats stats;
+        uint32_t seq = 0;
         auto next_status = Clock::now() + kStatusEvery;
-        while (running) {
-            if (auto r = readings.pop(100ms)) {
-                ++stats.replies;
-                switch (r->pid) {
-                    case obd::pid::kCoolant:
-                        stats.coolant = r->value;
-                        break;
-                    case obd::pid::kRpm:
-                        stats.rpm = r->value;
-                        break;
-                    case obd::pid::kSpeed:
-                        stats.speed = r->value;
-                        break;
-                    default:
-                        break;
+        try {
+            while (running) {
+                if (auto s = readings.pop(100ms)) {
+                    ++stats.replies;
+                    switch (s->reading.pid) {
+                        case obd::pid::kCoolant:
+                            stats.coolant = s->reading.value;
+                            break;
+                        case obd::pid::kRpm:
+                            stats.rpm = s->reading.value;
+                            break;
+                        case obd::pid::kSpeed:
+                            stats.speed = s->reading.value;
+                            break;
+                        default:
+                            break;
+                    }
+                    file.write(record::encode(seq++, s->time_us, s->reading));
+                }
+
+                if (Clock::now() >= next_status) {
+                    print_status(stats, sent, bad, readings.dropped());
+                    next_status += kStatusEvery;
+                    file.sync();
                 }
             }
-
-            if (Clock::now() >= next_status) {
-                print_status(stats, sent, bad, readings.dropped());
-                next_status += kStatusEvery;
-            }
+        } catch (const std::system_error& e) {
+            std::fprintf(stderr, "writer: %s\n", e.what());
+            running = false;
         }
 
         // threads use sock and readings, so they must finish before those are destroyed

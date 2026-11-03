@@ -43,9 +43,9 @@ target_include_directories(log_file PUBLIC src)
 add_executable(probe src/probe.cpp)
 target_link_libraries(probe PRIVATE obd isotp_socket)
 
-# the logger: polls on a schedule, prints a status line
+# the logger: polls on a schedule, prints a status line, and logs records
 add_executable(logger src/logger.cpp)
-target_link_libraries(logger PRIVATE obd isotp_socket scheduler bounded_queue)
+target_link_libraries(logger PRIVATE obd isotp_socket scheduler bounded_queue log_file record)
 
 # unit tests, built wherever googletest is installed (sudo apt install libgtest-dev)
 include(CTest)
