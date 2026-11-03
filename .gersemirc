@@ -1,0 +1,4 @@
+# cmake formatting, for `just format` and `just lint`
+indent: 2
+line_length: 100
+list_expansion: favour-expansion

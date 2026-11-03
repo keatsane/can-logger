@@ -31,7 +31,7 @@
 			can_cs_pins: can-cs-pins {
 				brcm,function = <1>;
 				brcm,pins = <17 16>;
-			};			
+			};
 			// int pin for chip 0: gpio 22 as input
 			can0_int_pin: can0-int-pin {
 				brcm,function = <0>;
@@ -80,7 +80,7 @@
 				interrupt-parent = <&rp1_gpio>;
 				compatible = "microchip,mcp2515";
 				reg = <1>;				// cs 1, gpio 16
-			}; 
+			};
 		};
 	};
 };

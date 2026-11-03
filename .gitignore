@@ -1,31 +1,31 @@
 # build output
-build/
+*.a
+*.bin
+*.dtbo
+*.elf
+*.hex
+*.img
+*.map
+*.o
+*.so
 build-*/
+build/
 output/
 
-# logs copied from the pi, and what the decoder makes from them
-logs/
-*.o
-*.a
-*.so
-*.elf
-*.bin
-*.hex
-*.map
-*.img
-*.dtbo
-
 # cmake
-CMakeFiles/
 CMakeCache.txt
+CMakeFiles/
 cmake_install.cmake
 compile_commands.json
 
-# python
-__pycache__/
-.venv/
-.pytest_cache/
-.ruff_cache/
-
 # editors
 .vscode/
+
+# logs copied from the pi, and what the decoder makes from them
+logs/
+
+# python
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
