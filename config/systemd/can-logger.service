@@ -7,3 +7,4 @@ WorkingDirectory=/home/keating/logs
 User=keating
 Restart=on-failure
 RestartSec=5
+WatchdogSec=10

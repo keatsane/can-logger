@@ -15,6 +15,7 @@
 #include "obd.hpp"
 #include "record.hpp"
 #include "scheduler.hpp"
+#include "systemd_notify.hpp"
 
 using namespace std::chrono_literals;
 
@@ -106,6 +107,8 @@ int main() {
         BoundedQueue<Stamped, 64> readings;
         std::atomic<unsigned> sent{0};
         std::atomic<unsigned> bad{0};
+        std::atomic<unsigned> poller_beats{0};
+        std::atomic<unsigned> receiver_beats{0};
         std::atomic<bool> failed{false};
 
         // poller: sends requests on schedule, never waits for replies
@@ -113,6 +116,7 @@ int main() {
             try {
                 Scheduler sched(kPolls, kMinGap);
                 while (running) {
+                    ++poller_beats;
                     if (auto pid = sched.next(Clock::now())) {
                         sock.send(obd::make_request(*pid));
                         ++sent;
@@ -132,6 +136,7 @@ int main() {
             try {
                 uint8_t buf[64];
                 while (running) {
+                    ++receiver_beats;
                     auto reply = sock.receive(buf, kReplyTimeoutMs);
                     if (!reply) continue;
 
@@ -153,6 +158,8 @@ int main() {
         // each reading to the log
         Stats stats;
         uint32_t seq = 0;
+        unsigned last_poller_beat = 0;
+        unsigned last_receiver_beat = 0;
         auto next_status = Clock::now() + kStatusEvery;
         try {
             while (running) {
@@ -178,6 +185,14 @@ int main() {
                     print_status(stats, sent, bad, readings.dropped());
                     next_status += kStatusEvery;
                     file.sync();
+
+                    unsigned poller_beat = poller_beats;
+                    unsigned receiver_beat = receiver_beats;
+                    if (last_poller_beat != poller_beat && last_receiver_beat != receiver_beat) {
+                        notify_systemd("WATCHDOG=1");
+                        last_poller_beat = poller_beat;
+                        last_receiver_beat = receiver_beat;
+                    }
                 }
             }
         } catch (const std::system_error& e) {
