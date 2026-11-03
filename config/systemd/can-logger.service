@@ -1,0 +1,9 @@
+[Unit]
+Description=Runs the can logger, restarts on fail.
+
+[Service]
+ExecStart=/home/keating/can-logger/build/logger
+WorkingDirectory=/home/keating/logs
+User=keating
+Restart=on-failure
+RestartSec=5
