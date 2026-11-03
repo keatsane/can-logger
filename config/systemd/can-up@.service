@@ -1,0 +1,13 @@
+[Unit]
+Description=Brings %i up to 500k on startup.
+BindsTo=sys-subsystem-net-devices-%i.device
+After=sys-subsystem-net-devices-%i.device
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/ip link set %i up type can bitrate 500000
+ExecStop=/usr/bin/ip link set %i down
+
+[Install]
+WantedBy=multi-user.target
