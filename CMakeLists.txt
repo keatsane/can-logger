@@ -35,6 +35,10 @@ target_include_directories(scheduler PUBLIC src)
 add_library(isotp_socket src/isotp_socket.cpp)
 target_include_directories(isotp_socket PUBLIC src)
 
+# the log file on disk, linux only
+add_library(log_file src/log_file.cpp)
+target_include_directories(log_file PUBLIC src)
+
 # one request, one reply
 add_executable(probe src/probe.cpp)
 target_link_libraries(probe PRIVATE obd isotp_socket)
@@ -52,8 +56,10 @@ endif()
 if(BUILD_TESTING AND GTest_FOUND)
   include(GoogleTest)
   add_executable(unit_tests tests/obd_test.cpp tests/scheduler_test.cpp
-                            tests/bounded_queue_test.cpp tests/record_test.cpp)
-  target_link_libraries(unit_tests PRIVATE obd scheduler bounded_queue record GTest::gtest_main)
+                            tests/bounded_queue_test.cpp tests/record_test.cpp
+                            tests/log_file_test.cpp)
+  target_link_libraries(unit_tests PRIVATE obd scheduler bounded_queue record log_file
+                                           GTest::gtest_main)
   # list the tests when ctest runs, not at build time, so `setarch -R` in `just tsan` covers it too
   gtest_discover_tests(unit_tests DISCOVERY_MODE PRE_TEST)
 endif()
