@@ -185,6 +185,11 @@ int main() {
         // threads use sock and readings, so they must finish before those are destroyed
         poller.join();
         receiver.join();
+
+        // readings still queued after stop
+        while (auto s = readings.pop(0ms))
+            file.write(record::encode(seq++, s->time_us, s->reading));
+
         file.sync();
     } catch (const std::system_error& e) {
         std::fprintf(stderr, "%s\n", e.what());
