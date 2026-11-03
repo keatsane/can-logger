@@ -106,6 +106,7 @@ int main() {
         BoundedQueue<Stamped, 64> readings;
         std::atomic<unsigned> sent{0};
         std::atomic<unsigned> bad{0};
+        std::atomic<bool> failed{false};
 
         // poller: sends requests on schedule, never waits for replies
         std::thread poller([&] {
@@ -122,6 +123,7 @@ int main() {
             } catch (const std::system_error& e) {
                 std::fprintf(stderr, "poller: %s\n", e.what());
                 running = false;
+                failed = true;
             }
         });
 
@@ -143,6 +145,7 @@ int main() {
             } catch (const std::system_error& e) {
                 std::fprintf(stderr, "receiver: %s\n", e.what());
                 running = false;
+                failed = true;
             }
         });
 
@@ -180,6 +183,7 @@ int main() {
         } catch (const std::system_error& e) {
             std::fprintf(stderr, "writer: %s\n", e.what());
             running = false;
+            failed = true;
         }
 
         // threads use sock and readings, so they must finish before those are destroyed
@@ -191,6 +195,7 @@ int main() {
             file.write(record::encode(seq++, s->time_us, s->reading));
 
         file.sync();
+        return failed;
     } catch (const std::system_error& e) {
         std::fprintf(stderr, "%s\n", e.what());
         return 1;
