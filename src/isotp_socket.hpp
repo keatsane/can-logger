@@ -10,6 +10,8 @@
 #include <optional>
 #include <span>
 
+#include "unique_fd.hpp"
+
 class IsoTpSocket {
 public:
     /**
@@ -20,12 +22,6 @@ public:
      * @throws std::system_error naming the failed call, with its errno
      */
     IsoTpSocket(const char* ifname, canid_t tx_id, canid_t rx_id);
-    ~IsoTpSocket();
-
-    IsoTpSocket(const IsoTpSocket&) = delete;  // no copies: two owners would close it twice
-    IsoTpSocket& operator=(const IsoTpSocket&) = delete;
-    IsoTpSocket(IsoTpSocket&& other) noexcept;  // moves hand ownership over
-    IsoTpSocket& operator=(IsoTpSocket&& other) noexcept;
 
     /**
      * @brief Send one whole message; the kernel splits it into frames if needed.
@@ -44,7 +40,5 @@ public:
     std::optional<std::span<const uint8_t>> receive(std::span<uint8_t> buf, int timeout_ms);
 
 private:
-    [[noreturn]] void fail_open(const char* what);  // constructor only: closes, then throws
-
-    int fd_ = -1;
+    UniqueFd fd_;
 };
