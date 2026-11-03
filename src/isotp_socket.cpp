@@ -47,7 +47,11 @@ std::optional<std::span<const uint8_t>> IsoTpSocket::receive(std::span<uint8_t> 
     }
     if (n == 0) return std::nullopt;
 
-    ssize_t size = read(fd_.get(), buf.data(), buf.size());
-    if (size < 0) throw_errno("read");
+    ssize_t size = recv(fd_.get(), buf.data(), buf.size(), MSG_DONTWAIT);
+    if (size < 0) {
+        if (errno == EAGAIN) return std::nullopt;
+        throw_errno("recv");
+    }
+
     return buf.first(static_cast<size_t>(size));
 }
