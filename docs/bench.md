@@ -36,12 +36,14 @@ The kernel names CAN interfaces `canN` in the order the chips probe, which came 
 | `can_obd` | CAN0 | GPIO 17 (CS 0) | GPIO 22 | Logger side; goes to the car |
 | `can_ecu` | CAN1 | GPIO 16 (CS 1) | GPIO 13 | Bench only; runs the fake ECU |
 
-Install with `sudo cp config/systemd/*.link /etc/systemd/network/` and reboot. Bring both up at 500 kbit/s:
+The bitrate doesn't survive a reboot, so `config/systemd/can-up@.service` sets it at boot, once per interface. It waits for the renamed interface to exist before running.
 
 ```
-sudo ip link set can_obd up type can bitrate 500000
-sudo ip link set can_ecu up type can bitrate 500000
+just pi-install                                      # copies the .link and service files
+sudo systemctl enable can-up@can_obd can-up@can_ecu  # on the Pi, then reboot
 ```
+
+This brings the interfaces up in normal mode, where the controller acknowledges frames and sends error flags even if no program is running. For a listen-only capture, disable it first (`sudo systemctl disable --now can-up@can_obd`) and bring the interface up by hand with `listen-only on`.
 
 ## Fake ECU
 
@@ -52,9 +54,51 @@ python3 tools/fake_ecu.py            # on can_ecu
 cansend can_obd 7DF#02010C0000000000 # rpm request
 ```
 
+## Logger
+
+`src/logger.cpp` runs three threads on an ISO-TP socket, physical addressing 0x7E0 to 0x7E8:
+
+- the poller sends requests from `src/scheduler.cpp`: RPM and speed every 500 ms, coolant every 2 s, never closer together than 200 ms
+- the receiver decodes each reply, stamps it with the wall-clock time and hands it over through a bounded queue, which drops and counts if it ever fills
+- the writer appends each reading to a new file per run, `can-YYYYMMDD-HHMMSS.bin` (UTC), with an `fsync` once a second, and prints a status line
+
+The record format is documented at the top of `src/record.hpp`: 28 bytes, little-endian, with a sequence number and a CRC-32.
+
+`tools/decode_log.py` checks a log and writes CSV. Problems and a summary go to stderr: bad CRCs, gaps in the sequence numbers, and a record cut off at the end of the file. After damage it finds the next record by searching for the `CL` marker.
+
+```
+just pull-logs
+python3 tools/decode_log.py logs/can-20261103-203836.bin > logs/run.csv
+```
+
+## Running as a service
+
+`config/systemd/can-logger.service` runs the logger from `~/logs`. It has no `[Install]` section, so it only starts by hand:
+
+```
+sudo systemctl start can-logger
+journalctl -u can-logger -f
+sudo systemctl stop can-logger
+```
+
+- SIGINT and SIGTERM stop it cleanly: the threads finish, queued readings are written and the file is synced. That exits 0, so systemd leaves it stopped.
+- If a thread hits an error, the logger stops and exits 1, and systemd restarts it after 5 s.
+- `WatchdogSec=10`: once a second the writer sends systemd `WATCHDOG=1`, but only if the poller and receiver have both gone around their loops since the last time. If that stops for 10 s, systemd kills and restarts the logger.
+- systemd also feeds the Pi's hardware watchdog, which is on by default here (60 s timeout).
+
 ## Measurements (2026-11-01)
 
 - **Bit time: 2.0 us**, matching 500 kbit/s. Measured on a Siglent SDS804X HD with CH1 on CAN-H, CH2 on CAN-L and the math trace CH1 - CH2, using time cursors across a single bit. Both channels share the overlay's oscillator setting, so they would agree with each other even if it were wrong; the scope checks it independently.
 - **Bit timing chosen by the kernel** (`ip -details link show`): 125 ns time quantum (16 MHz crystal / 2), 16 quanta per bit, sample point 87.5%.
 - **Scope CAN decode** at 500 kbit/s read the request as ID 0x7DF, length 8.
 - **Terminal mapping:** with the link wires removed, a frame sent on `can_obd` gets no acknowledgment and is retransmitted continuously; the retransmissions appear on the CAN0 terminal and not on CAN1.
+
+## Logger measurements (2026-11-03)
+
+All against the fake ECU.
+
+- **Poll rate: about 4.3 requests/s**, from the status lines (286 requests in 67 s), with `sent` equal to `replies` and no bad or dropped readings.
+- **Record integrity:** a 36-record log stopped with `pkill -TERM` decoded with 0 bad and 0 missing. Decoder behavior on damaged files is covered by `tests/decode_log_test.py`.
+- **Interface failure:** `sudo ip link set can_obd down` stopped the logger with `Network is down` and exit code 1. systemd retried every 5 s, and the logger recovered on its own once the interface came back up.
+- **Silent bus:** with the fake ECU stopped for about 15 s and then about 20 s, `sent` kept rising, `replies` froze, and the watchdog did not fire. Replies resumed when it restarted. The other channel was still up and acknowledging frames.
+- **Hang:** `pkill -STOP logger` froze the whole process, and systemd reported `Watchdog timeout` 10 s after the last status line. This stops all the threads at once, so a single stuck thread hasn't been tested.
