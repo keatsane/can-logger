@@ -39,7 +39,10 @@ std::optional<std::span<const uint8_t>> IsoTpSocket::receive(std::span<uint8_t> 
     pfd.fd = fd_.get();
     pfd.events = POLLIN;
     int n = poll(&pfd, 1, timeout_ms);
-    if (n < 0) throw_errno("poll");
+    if (n < 0) {
+        if (errno == EINTR) return std::nullopt;
+        throw_errno("poll");
+    }
     if (n == 0) return std::nullopt;
 
     ssize_t size = read(fd_.get(), buf.data(), buf.size());

@@ -1,5 +1,6 @@
 #include <atomic>
 #include <chrono>
+#include <csignal>
 #include <cstdint>
 #include <cstdio>
 #include <ctime>
@@ -84,9 +85,18 @@ void print_status(const Stats& s, unsigned sent, unsigned bad, std::size_t dropp
     std::fflush(stdout);
 }
 
+std::atomic<bool> running{true};
+
+void handle_stop(int) {
+    running = false;
+}
+
 }  // namespace
 
 int main() {
+    std::signal(SIGINT, handle_stop);
+    std::signal(SIGTERM, handle_stop);
+
     try {
         // shared by the threads below, so created before any of them start
         IsoTpSocket sock("can_obd", obd::kEngineRequestId, obd::kEngineReplyId);
@@ -94,7 +104,6 @@ int main() {
         LogFile file(name.c_str());
         std::printf("logging to %s\n", name.c_str());
         BoundedQueue<Stamped, 64> readings;
-        std::atomic<bool> running{true};
         std::atomic<unsigned> sent{0};
         std::atomic<unsigned> bad{0};
 
@@ -176,6 +185,7 @@ int main() {
         // threads use sock and readings, so they must finish before those are destroyed
         poller.join();
         receiver.join();
+        file.sync();
     } catch (const std::system_error& e) {
         std::fprintf(stderr, "%s\n", e.what());
         return 1;
