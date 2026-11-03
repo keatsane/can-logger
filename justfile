@@ -32,7 +32,7 @@ fake-ecu *args: sync
 # rewrite the c++, python and cmake in place to match the project style
 format:
     clang-format -i src/*.cpp src/*.hpp tests/*.cpp
-    black --quiet tools/*.py
+    black --quiet tools/*.py tests/*.py
     gersemi --in-place CMakeLists.txt
 
 # use the hooks in tools/hooks (once per clone)
@@ -42,7 +42,7 @@ hooks:
 # check formatting and text rules everywhere without changing anything. `just format` fixes most of it
 lint:
     clang-format --dry-run --Werror src/*.cpp src/*.hpp tests/*.cpp
-    black --check --quiet tools/*.py
+    black --check --quiet tools/*.py tests/*.py
     gersemi --check CMakeLists.txt
     shellcheck tools/*.sh tools/hooks/pre-commit
     tools/check-text.sh
@@ -55,17 +55,27 @@ logger: pi-build
 pi-build: sync
     ssh {{pi}} 'cd can-logger && cmake -S . -B build && cmake --build build'
 
+# sync, build, and install the service and .link files on the pi. never enables anything
+pi-install: pi-build
+    ssh -t {{pi}} 'mkdir -p logs && sudo cp can-logger/config/systemd/*.service /etc/systemd/system/ && sudo cp can-logger/config/systemd/*.link /etc/systemd/network/ && sudo systemctl daemon-reload'
+
 # sync, build on the pi, run the probe there
 probe: pi-build
     ssh {{pi}} 'can-logger/build/probe'
+
+# copy the logs from the pi into logs/ here
+pull-logs:
+    mkdir -p logs
+    rsync -a {{pi}}:logs/ logs/
 
 # copy the working tree to the pi
 sync:
     PI_HOST={{pi}} tools/sync-to-pi.sh
 
-# build, then run the unit tests
+# build, then run the c++ unit tests and the decoder's tests
 test: build
     ctest --test-dir build --output-on-failure
+    python3 -m unittest discover --start-directory tests --pattern '*_test.py'
 
 # the unit tests again under threadsanitizer, which fails on any data race between threads
 tsan:

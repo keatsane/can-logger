@@ -107,6 +107,7 @@ int main() {
         BoundedQueue<Stamped, 64> readings;
         std::atomic<unsigned> sent{0};
         std::atomic<unsigned> bad{0};
+        // bumped every loop. the writer only pets the watchdog while both keep moving
         std::atomic<unsigned> poller_beats{0};
         std::atomic<unsigned> receiver_beats{0};
         std::atomic<bool> failed{false};
@@ -210,7 +211,7 @@ int main() {
             file.write(record::encode(seq++, s->time_us, s->reading));
 
         file.sync();
-        return failed;
+        return failed ? 1 : 0;
     } catch (const std::system_error& e) {
         std::fprintf(stderr, "%s\n", e.what());
         return 1;

@@ -1,5 +1,6 @@
+# normal mode: the controller acks and error-flags on the bus. disable for can_obd before listen-only
 [Unit]
-Description=Brings %i up to 500k on startup.
+Description=Bring %i up at 500 kbit/s
 BindsTo=sys-subsystem-net-devices-%i.device
 After=sys-subsystem-net-devices-%i.device
 

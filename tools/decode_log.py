@@ -42,4 +42,6 @@ def decode_log(path):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        sys.exit("usage: decode_log.py <input file (.bin)> > <output file (.csv)>")
     decode_log(sys.argv[1])

@@ -1,5 +1,7 @@
+# started by hand on purpose: no [Install], so it can't be enabled and poll the car at boot
 [Unit]
-Description=Runs the can logger, restarts on fail.
+Description=can-logger, polls obd-ii and writes records
+After=can-up@can_obd.service
 
 [Service]
 ExecStart=/home/keating/can-logger/build/logger

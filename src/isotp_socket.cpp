@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <cerrno>
+
 IsoTpSocket::IsoTpSocket(const char* ifname, canid_t tx_id, canid_t rx_id)
     : fd_(socket(PF_CAN, SOCK_DGRAM, CAN_ISOTP)) {
     if (fd_.get() < 0) throw_errno("socket");
