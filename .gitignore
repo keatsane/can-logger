@@ -2,6 +2,9 @@
 build/
 build-*/
 output/
+
+# logs copied from the pi, and what the decoder makes from them
+logs/
 *.o
 *.a
 *.so
