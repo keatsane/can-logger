@@ -62,20 +62,46 @@ On the bench, a frame sent from `can_ecu` showed up repeatedly on `can_obd` in l
 
 ## Fake ECU
 
-`tools/fake_ecu.py` answers OBD-II service 0x01 requests (sent to 0x7DF or 0x7E0) on 0x7E8, as padded single frames. It supports PID 0x00 (supported PIDs), 0x05 (coolant), 0x0C (RPM) and 0x0D (speed), with values from a simulated drive, and flags any request outside the read-only OBD-II services.
+`tools/fake_ecu.py` answers OBD-II requests sent to 0x7DF or 0x7E0 on 0x7E8, in padded 8-byte frames:
+
+- service 0x01: the logger's PIDs (listed below) with values from a simulated drive, plus the supported-PID ranges 0x00 and 0x20
+- services 0x03 and 0x07: three stored trouble codes, which need more than one frame, and no pending ones
+- service 0x09: a made-up VIN as a multi-frame reply, sent after the requester's flow control frame
+
+It flags any request outside the read-only OBD-II services, and any frame that isn't 8 bytes, since a real ECU may ignore one.
 
 ```
 python3 tools/fake_ecu.py            # on can_ecu
 cansend can_obd 7DF#02010C0000000000 # rpm request
 ```
 
+## Car info
+
+`tools/car_info.py` asks the engine ECU once for its supported PIDs, VIN, and stored and pending trouble codes. It refuses to send anything outside the read-only OBD-II services, and waits 200 ms between requests. It shares the logger's IDs, so the logger has to be stopped first.
+
+```
+python3 tools/car_info.py | tee ~/logs/car-info.txt
+```
+
 ## Logger
 
 `src/logger.cpp` runs three threads on an ISO-TP socket, physical addressing 0x7E0 to 0x7E8:
 
-- the poller sends requests from `src/scheduler.cpp`: RPM and speed every 500 ms, coolant every 2 s, never closer together than 200 ms
+- the poller sends requests from `src/scheduler.cpp`, never closer together than 200 ms (table below)
 - the receiver decodes each reply, stamps it with the wall-clock time and hands it over through a bounded queue, which drops and counts if it ever fills
 - the writer appends each reading to a new file per run, `can-YYYYMMDD-HHMMSS.bin` (UTC), with an `fsync` once a second, and prints a status line
+
+| PID | Value | Unit | Polled every |
+|---|---|---|---|
+| 0x04 | Engine load | % | 1 s |
+| 0x05 | Coolant temperature | C | 5 s |
+| 0x06 | Short-term fuel trim | % | 5 s |
+| 0x07 | Long-term fuel trim | % | 10 s |
+| 0x0B | Manifold pressure | kPa | 2 s |
+| 0x0C | Engine speed | rpm | 1 s |
+| 0x0D | Vehicle speed | km/h | 1 s |
+| 0x0F | Intake air temperature | C | 5 s |
+| 0x11 | Throttle position | % | 2 s |
 
 The record format is documented at the top of `src/record.hpp`: 28 bytes, little-endian, with a sequence number and a CRC-32.
 
@@ -84,6 +110,12 @@ The record format is documented at the top of `src/record.hpp`: 28 bytes, little
 ```
 just pull-logs
 python3 tools/decode_log.py logs/can-20261103-203836.bin > logs/run.csv
+```
+
+`tools/drive_report.py` turns that CSV into `drive.png` and `report.md`: duration, distance, coolant warm-up, the longest gap between records, and min, mean and max for each PID. Given the car info file, it also adds the supported PIDs and trouble codes. It never copies the VIN. It needs matplotlib, so it runs on the PC.
+
+```
+python3 tools/drive_report.py logs/run.csv logs/report logs/car-info.txt
 ```
 
 ## Running as a service
@@ -113,8 +145,9 @@ sudo systemctl stop can-logger
 
 All against the fake ECU.
 
-- **Poll rate: about 4.3 requests/s**, from the status lines (286 requests in 67 s), with `sent` equal to `replies` and no bad or dropped readings.
-- **One-hour run:** 61.6 minutes under systemd wrote 15,742 records at 4.26 records/s, and the log decoded with 0 bad and 0 missing. The fake ECU answered 15,742 requests and flagged none. There were 0 restarts, `vcgencmd get_throttled` read `0x0` at the end, and the logger used 2.6 s of CPU. Time between records stayed between 200.8 and 301.9 ms, so the 200 ms minimum spacing held. The log came to 441 KB.
+- **Poll rate, nine PIDs:** a 16.0-minute run under systemd wrote 4,238 records at 4.41 records/s, decoded with 0 bad and 0 missing, and the fake ECU answered 4,238 requests and flagged none. There were 0 restarts and `vcgencmd get_throttled` read `0x0`. Records were 201 to 593 ms apart. Measured from the log, the 1 s PIDs averaged 1.09 s (worst 1.81 s), the 2 s PIDs 2.08 s (worst 2.59 s), the 5 s PIDs 5.02 s and the 10 s PID 10.04 s. They run slightly long because each period restarts from when the request was actually sent.
+- **Car info:** `tools/car_info.py` against the fake ECU read back all ten supported PIDs across two ranges, the multi-frame VIN and three stored trouble codes, with the kernel's ISO-TP socket handling flow control.
+- **One-hour run, with the earlier table of coolant, RPM and speed:** 61.6 minutes under systemd wrote 15,742 records at 4.26 records/s, and the log decoded with 0 bad and 0 missing. The fake ECU answered 15,742 requests and flagged none. There were 0 restarts, `vcgencmd get_throttled` read `0x0` at the end, and the logger used 2.6 s of CPU. Time between records stayed between 200.8 and 301.9 ms, so the 200 ms minimum spacing held. The log came to 441 KB.
 - **Record integrity:** a 36-record log stopped with `pkill -TERM` decoded with 0 bad and 0 missing. Decoder behavior on damaged files is covered by `tests/decode_log_test.py`.
 - **Interface failure:** `sudo ip link set can_obd down` stopped the logger with `Network is down` and exit code 1. systemd retried every 5 s, and the logger recovered on its own once the interface came back up.
 - **Silent bus:** with the fake ECU stopped for about 15 s and then about 20 s, `sent` kept rising, `replies` froze, and the watchdog did not fire. Replies resumed when it restarted. The other channel was still up and acknowledging frames.
