@@ -15,6 +15,7 @@
 #include "obd.hpp"
 #include "record.hpp"
 #include "scheduler.hpp"
+#include "status_led.hpp"
 #include "systemd_notify.hpp"
 
 using namespace std::chrono_literals;
@@ -30,6 +31,7 @@ constexpr PollEntry kPolls[] = {
 constexpr Clock::duration kMinGap = 200ms;
 constexpr int kReplyTimeoutMs = 100;
 constexpr Clock::duration kStatusEvery = 1s;
+constexpr const char* kLedPath = "/sys/class/leds/ACT/brightness";
 
 // a reading plus when its reply arrived
 struct Stamped {
@@ -104,6 +106,7 @@ int main() {
         std::string name = session_name();
         LogFile file(name.c_str());
         std::printf("logging to %s\n", name.c_str());
+        StatusLed led(kLedPath);
         BoundedQueue<Stamped, 64> readings;
         std::atomic<unsigned> sent{0};
         std::atomic<unsigned> bad{0};
@@ -180,6 +183,7 @@ int main() {
                             break;
                     }
                     file.write(record::encode(seq++, s->time_us, s->reading));
+                    led.set(seq % 2 == 1);  // blinks only while records are being written
                 }
 
                 if (Clock::now() >= next_status) {

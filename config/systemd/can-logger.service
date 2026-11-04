@@ -4,7 +4,11 @@ Description=can-logger, polls obd-ii and writes records
 After=can-up@can_obd.service
 
 [Service]
+# + runs as root, to take the act led over from the sd card and give it back
+# - means failing is fine: a missing led must never stop the logging
+ExecStartPre=-+/usr/bin/sh -c 'echo none > /sys/class/leds/ACT/trigger && chown keating /sys/class/leds/ACT/brightness'
 ExecStart=/home/keating/can-logger/build/logger
+ExecStopPost=-+/usr/bin/sh -c 'echo mmc0 > /sys/class/leds/ACT/trigger; chown root /sys/class/leds/ACT/brightness'
 WorkingDirectory=/home/keating/logs
 User=keating
 Restart=on-failure

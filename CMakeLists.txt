@@ -42,6 +42,7 @@ target_link_libraries(
     obd
     record
     scheduler
+    status_led
     systemd_notify
 )
 
@@ -67,6 +68,10 @@ target_link_libraries(record PUBLIC obd)
 add_library(scheduler src/scheduler.cpp)
 target_include_directories(scheduler PUBLIC src)
 
+# the status led, best effort
+add_library(status_led src/status_led.cpp)
+target_include_directories(status_led PUBLIC src)
+
 # heartbeat/alive messages for watchdog
 add_library(systemd_notify src/systemd_notify.cpp)
 target_include_directories(systemd_notify PUBLIC src)
@@ -86,6 +91,7 @@ if(BUILD_TESTING AND GTest_FOUND)
     tests/obd_test.cpp
     tests/record_test.cpp
     tests/scheduler_test.cpp
+    tests/status_led_test.cpp
     tests/systemd_notify_test.cpp
   )
   target_link_libraries(
@@ -96,6 +102,7 @@ if(BUILD_TESTING AND GTest_FOUND)
       obd
       record
       scheduler
+      status_led
       systemd_notify
       GTest::gtest_main
   )

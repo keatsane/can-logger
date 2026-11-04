@@ -85,6 +85,7 @@ sudo systemctl stop can-logger
 - If a thread hits an error, the logger stops and exits 1, and systemd restarts it after 5 s.
 - `WatchdogSec=10`: once a second the writer sends systemd `WATCHDOG=1`, but only if the poller and receiver have both gone around their loops since the last time. If that stops for 10 s, systemd kills and restarts the logger.
 - systemd also feeds the Pi's hardware watchdog, which is on by default here (60 s timeout).
+- The ACT LED blinks while records are being written, as a check with no laptop. The service takes the LED over from the SD card activity trigger at start and gives it back at stop. A missing LED never stops the logging.
 
 ## Measurements (2026-11-01)
 
@@ -101,4 +102,9 @@ All against the fake ECU.
 - **Record integrity:** a 36-record log stopped with `pkill -TERM` decoded with 0 bad and 0 missing. Decoder behavior on damaged files is covered by `tests/decode_log_test.py`.
 - **Interface failure:** `sudo ip link set can_obd down` stopped the logger with `Network is down` and exit code 1. systemd retried every 5 s, and the logger recovered on its own once the interface came back up.
 - **Silent bus:** with the fake ECU stopped for about 15 s and then about 20 s, `sent` kept rising, `replies` froze, and the watchdog did not fire. Replies resumed when it restarted. The other channel was still up and acknowledging frames.
-- **Hang:** `pkill -STOP logger` froze the whole process, and systemd reported `Watchdog timeout` 10 s after the last status line. This stops all the threads at once, so a single stuck thread hasn't been tested.
+- **Hang:** `pkill -STOP logger` froze the whole process, and systemd reported `Watchdog timeout` 10 s after the last status line.
+- **One stuck thread:** with a temporary long sleep in the poller, `sent` froze while the writer kept printing status lines. The watchdog fired 11 s after the start and systemd restarted the logger.
+- **Nothing acknowledging:** with `can_ecu` down, the logger stopped within about 2 s with `Communication error on send` and exit code 1. `can_obd` went to error-passive.
+- **Bus errors:** with `can_ecu` at 250 kbit/s against `can_obd` at 500 kbit/s, the logger stopped the same way and `can_obd` went bus-off. `restart-ms` is 0, so it stays off the bus until someone restarts the interface.
+- **Disk full:** on a 16 KB tmpfs (the smallest possible with this kernel's 16 KB pages), the logger stopped with `writer: write: Input/output error` and exit code 1. The file decoded to 585 good records, 0 bad, 0 missing, and a partial record at byte 16380.
+- **Hardware watchdog:** with `kernel.panic` at 0, a kernel crash through `/proc/sysrq-trigger` rebooted the Pi on its own, and both CAN interfaces came back up.
