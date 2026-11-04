@@ -4,6 +4,8 @@ Parts in use so far.
 
 | Part | Qty | Notes | Reference |
 |---|---|---|---|
+| Anker PowerDrive III Duo car charger | 1 | Powers the Pi in the car from the 12 V socket, one USB-C port at 5 V 3 A | - |
+| CERRXIAN OBD-II pigtail, 5 ft | 1 | 16-pin male to open leads; pins 5, 6 and 14 go to the HAT, pin 16 stays unconnected | - |
 | Raspberry Pi 5, 4GB | 1 | Main board, runs Raspberry Pi OS Lite (64-bit) | [Product brief (raspberrypi.com)](https://datasheets.raspberrypi.com/rpi5/raspberry-pi-5-product-brief.pdf) |
 | Raspberry Pi 27W USB-C power supply | 1 | 5.1 V 5 A bench supply | [Product page (raspberrypi.com)](https://www.raspberrypi.com/products/27w-power-supply/) |
 | Raspberry Pi Active Cooler | 1 | Fits under the CAN HAT | [Product page (raspberrypi.com)](https://www.raspberrypi.com/products/active-cooler/) |

@@ -18,6 +18,9 @@ CMakeFiles/
 cmake_install.cmake
 compile_commands.json
 
+# the drive's raw log, kept with its report
+!docs/drive/*.bin
+
 # editors
 .vscode/
 
