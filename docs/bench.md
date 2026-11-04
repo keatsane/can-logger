@@ -114,6 +114,7 @@ sudo systemctl stop can-logger
 All against the fake ECU.
 
 - **Poll rate: about 4.3 requests/s**, from the status lines (286 requests in 67 s), with `sent` equal to `replies` and no bad or dropped readings.
+- **One-hour run:** 61.6 minutes under systemd wrote 15,742 records at 4.26 records/s, and the log decoded with 0 bad and 0 missing. The fake ECU answered 15,742 requests and flagged none. There were 0 restarts, `vcgencmd get_throttled` read `0x0` at the end, and the logger used 2.6 s of CPU. Time between records stayed between 200.8 and 301.9 ms, so the 200 ms minimum spacing held. The log came to 441 KB.
 - **Record integrity:** a 36-record log stopped with `pkill -TERM` decoded with 0 bad and 0 missing. Decoder behavior on damaged files is covered by `tests/decode_log_test.py`.
 - **Interface failure:** `sudo ip link set can_obd down` stopped the logger with `Network is down` and exit code 1. systemd retried every 5 s, and the logger recovered on its own once the interface came back up.
 - **Silent bus:** with the fake ECU stopped for about 15 s and then about 20 s, `sent` kept rising, `replies` froze, and the watchdog did not fire. Replies resumed when it restarted. The other channel was still up and acknowledging frames.
