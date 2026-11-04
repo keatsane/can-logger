@@ -43,7 +43,22 @@ just pi-install                                      # copies the .link and serv
 sudo systemctl enable can-up@can_obd can-up@can_ecu  # on the Pi, then reboot
 ```
 
-This brings the interfaces up in normal mode, where the controller acknowledges frames and sends error flags even if no program is running. For a listen-only capture, disable it first (`sudo systemctl disable --now can-up@can_obd`) and bring the interface up by hand with `listen-only on`.
+This brings the interfaces up in normal mode, where the controller acknowledges frames and sends error flags even if no program is running. For a listen-only capture, disable it first and bring the interface up by hand:
+
+```
+sudo systemctl disable --now can-up@can_obd
+sudo ip link set can_obd up type can bitrate 500000 listen-only on
+candump -L can_obd > capture.log
+```
+
+Listen-only stays set across `down` and `up` until it's turned off, so the service always passes `listen-only off`. To go back to normal mode:
+
+```
+sudo ip link set can_obd down
+sudo systemctl enable --now can-up@can_obd
+```
+
+On the bench, a frame sent from `can_ecu` showed up repeatedly on `can_obd` in listen-only mode, because nothing acknowledged it and `can_ecu` went error-passive. A frame sent from `can_obd` never reached `can_ecu`.
 
 ## Fake ECU
 

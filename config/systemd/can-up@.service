@@ -7,7 +7,8 @@ After=sys-subsystem-net-devices-%i.device
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/bin/ip link set %i up type can bitrate 500000
+# listen-only stays set across down and up until it's turned off, so always say which mode
+ExecStart=/usr/bin/ip link set %i up type can bitrate 500000 listen-only off
 ExecStop=/usr/bin/ip link set %i down
 
 [Install]
