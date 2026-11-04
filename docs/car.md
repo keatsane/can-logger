@@ -42,6 +42,6 @@ Each step ran only after the one before it passed, all while parked:
 
 ## Limits of this run
 
-- It was one short drive, mostly in slow traffic: 6.4 km, 71 km/h at most, with a peak of 2,825 rpm and 135 kPa manifold pressure.
+- It was one car and one short drive, mostly in slow traffic: 6.4 km, 71 km/h at most, with a peak of 2,825 rpm and 135 kPa manifold pressure.
 - The engine was already warm when logging started, with coolant at 102 C, so there's no warm-up curve.
 - Only the OBD-II data was logged. The listen-only capture wasn't decoded beyond the frame above.

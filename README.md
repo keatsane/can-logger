@@ -1,6 +1,6 @@
 # can-logger
 
-An embedded Linux data logger for a car's diagnostic CAN bus. A small Linux board plugs into the OBD-II port of a 2017 Audi A4, polls standard OBD-II data over CAN, and writes it to storage as CRC-framed records. After a drive, a host-side tool checks the records and exports them as CSV.
+An embedded Linux data logger for a car's diagnostic CAN bus. A small Linux board plugs into a car's OBD-II port, polls standard OBD-II data over CAN, and writes it to storage as CRC-framed records. After a drive, a host-side tool checks the records and exports them as CSV.
 
 ## The stack
 - Linux: a Raspberry Pi 5 with a dual-channel SPI CAN HAT, a device-tree overlay for the HAT, the kernel's SocketCAN and ISO-TP support, and systemd services for bring-up, restarts and a watchdog.
@@ -9,6 +9,13 @@ An embedded Linux data logger for a car's diagnostic CAN bus. A small Linux boar
 
 ## Safety
 The logger only listens and sends standard read-only OBD-II requests. It never clears trouble codes, writes to a module, or opens a diagnostic session. Every new request type is tested against the bench ECU before it goes on the car.
+
+## Which cars it fits
+The logger uses OBD-II over CAN at 500 kbit/s with 11-bit IDs, and talks to the engine ECU on 0x7E0 and 0x7E8. Cars sold in the US have had to support OBD-II over CAN since the 2008 model year, and many use those settings, but it has only been tested on a 2017 Audi A4.
+
+- Cars that use 29-bit IDs or another bit rate would need changes. Older cars on other OBD-II protocols won't work, and electric cars may not answer these requests.
+- Which PIDs a car answers varies. `tools/car_info.py` lists them, and one the car doesn't support shows up as a missing or bad reply.
+- On a new car, follow the order in [docs/car.md](docs/car.md), starting with listen-only. A controller in normal mode at the wrong bit rate can disrupt the bus.
 
 ## Status
 Working in car, validated on one drive. On 2026-11-04 it logged 21.3 minutes in a 2017 Audi A4: 5,633 records from nine PIDs, which decoded with 0 bad and 0 missing, with 0 restarts. See the [drive report](docs/drive/report.md) and [docs/car.md](docs/car.md) for the results.
