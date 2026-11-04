@@ -22,11 +22,17 @@ using namespace std::chrono_literals;
 
 namespace {
 
-// what to poll and how often. the 200 ms gap caps the bus at 5 requests/s
+// what to poll and how often, at most 4.7 requests/s. the 200 ms gap caps the bus at 5 requests/s
 constexpr PollEntry kPolls[] = {
-    {obd::pid::kCoolant, 2000ms},
-    {obd::pid::kRpm, 500ms},
-    {obd::pid::kSpeed, 500ms},
+    {obd::pid::kEngineLoad, 1000ms},
+    {obd::pid::kCoolant, 5000ms},
+    {obd::pid::kShortTermFuelTrim, 5000ms},
+    {obd::pid::kLongTermFuelTrim, 10000ms},
+    {obd::pid::kManifoldPressure, 2000ms},
+    {obd::pid::kRpm, 1000ms},
+    {obd::pid::kSpeed, 1000ms},
+    {obd::pid::kIntakeTemp, 5000ms},
+    {obd::pid::kThrottle, 2000ms},
 };
 constexpr Clock::duration kMinGap = 200ms;
 constexpr int kReplyTimeoutMs = 100;

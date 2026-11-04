@@ -6,16 +6,30 @@ std::optional<Reading> decode(std::span<const uint8_t> payload) {
     if (payload.size() < 2) return std::nullopt;
     if (payload[0] != kServiceCurrentData + kReplyOffset) return std::nullopt;
 
-    switch (payload[1]) {
+    const uint8_t id = payload[1];
+    // service, pid, a. only rpm has a second data byte
+    if (payload.size() != (id == pid::kRpm ? 4u : 3u)) return std::nullopt;
+    const double a = payload[2];  // a double, so the divisions below keep their fractions
+
+    switch (id) {
+        case pid::kEngineLoad:
+            return Reading{id, a * 100 / 255};
         case pid::kCoolant:
-            if (payload.size() != 3) return std::nullopt;  // service, pid, a
-            return Reading{pid::kCoolant, payload[2] - 40.0};
+            return Reading{id, a - 40};
+        case pid::kShortTermFuelTrim:
+            return Reading{id, a * 100 / 128 - 100};
+        case pid::kLongTermFuelTrim:
+            return Reading{id, a * 100 / 128 - 100};
+        case pid::kManifoldPressure:
+            return Reading{id, a};
         case pid::kRpm:
-            if (payload.size() != 4) return std::nullopt;  // service, pid, a, b
-            return Reading{pid::kRpm, (payload[2] * 256 + payload[3]) / 4.0};
+            return Reading{id, (a * 256 + payload[3]) / 4};
         case pid::kSpeed:
-            if (payload.size() != 3) return std::nullopt;  // service, pid, a
-            return Reading{pid::kSpeed, static_cast<double>(payload[2])};
+            return Reading{id, a};
+        case pid::kIntakeTemp:
+            return Reading{id, a - 40};
+        case pid::kThrottle:
+            return Reading{id, a * 100 / 255};
         default:
             return std::nullopt;
     }

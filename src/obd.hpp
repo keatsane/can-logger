@@ -22,9 +22,15 @@ constexpr uint8_t kReplyOffset = 0x40;  // positive reply = service + 0x40
 
 namespace pid {
 constexpr uint8_t kSupported = 0x00;
+constexpr uint8_t kEngineLoad = 0x04;
 constexpr uint8_t kCoolant = 0x05;
+constexpr uint8_t kShortTermFuelTrim = 0x06;
+constexpr uint8_t kLongTermFuelTrim = 0x07;
+constexpr uint8_t kManifoldPressure = 0x0B;
 constexpr uint8_t kRpm = 0x0C;
 constexpr uint8_t kSpeed = 0x0D;
+constexpr uint8_t kIntakeTemp = 0x0F;
+constexpr uint8_t kThrottle = 0x11;
 }  // namespace pid
 
 /// one decoded value from a reply
