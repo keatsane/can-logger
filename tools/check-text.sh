@@ -27,7 +27,7 @@ for file in $(git ls-files --cached --others --exclude-standard); do
         *) if grep -qIF "$tab" "$file"; then report "contains tabs"; fi ;;
     esac
 
-    if [ -s "$file" ] && [ -n "$(tail -c1 "$file")" ]; then report "no newline at the end"; fi
+    if grep -qI '' "$file" && [ -n "$(tail -c1 "$file")" ]; then report "no newline at the end"; fi
 done
 
 exit "$status"
