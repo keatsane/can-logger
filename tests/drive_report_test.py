@@ -82,6 +82,11 @@ class Report(unittest.TestCase):
         self.assertIn("Time to 80 C coolant: 10.0 minutes", text)
         self.assertIn("| 0x05 | Coolant | C | 2 | 20.0 | 55.0 | 90.0 |", text)
 
+    def test_warm_start_has_no_warm_up_time(self):
+        text = drive_report.report_text({0x05: [(0, 102.0), (600, 108.0)]}, 1.0, [])
+        self.assertIn("102 C at the start, 108 C at the end", text)
+        self.assertNotIn("Time to", text)
+
     def test_missing_pids_are_left_out(self):
         text = drive_report.report_text({0x0C: [(0, 800.0), (1, 900.0)]}, 1.0, [])
         self.assertNotIn("Distance", text)

@@ -98,12 +98,14 @@ def report_text(readings, longest_gap, car_info):
         lines.append(f"- Distance, from vehicle speed: {distance_km(readings[SPEED]):.1f} km")
     if COOLANT in readings:
         coolant = readings[COOLANT]
-        warm = warm_up_min(coolant)
-        warm_text = f"{warm:.1f} minutes" if warm is not None else "not reached"
         lines.append(
             f"- Coolant: {coolant[0][1]:.0f} C at the start, {coolant[-1][1]:.0f} C at the end"
         )
-        lines.append(f"- Time to {WARM_C} C coolant: {warm_text}")
+        # an engine that started warm has no warm-up time to report
+        if coolant[0][1] < WARM_C:
+            warm = warm_up_min(coolant)
+            warm_text = f"{warm:.1f} minutes" if warm is not None else "not reached"
+            lines.append(f"- Time to {WARM_C} C coolant: {warm_text}")
     lines += ["", "![Drive plots](drive.png)", ""]
     lines += [
         "| PID | Value | Unit | Records | Min | Mean | Max |",
