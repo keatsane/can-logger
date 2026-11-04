@@ -31,8 +31,8 @@ fake-ecu *args: sync
 
 # rewrite the c++, python and cmake in place to match the project style
 format:
+    black --quiet tests/*.py tools/*.py
     clang-format -i src/*.cpp src/*.hpp tests/*.cpp
-    black --quiet tools/*.py tests/*.py
     gersemi --in-place CMakeLists.txt
 
 # use the hooks in tools/hooks (once per clone)
@@ -41,8 +41,8 @@ hooks:
 
 # check formatting and text rules everywhere without changing anything. `just format` fixes most of it
 lint:
+    black --check --quiet tests/*.py tools/*.py
     clang-format --dry-run --Werror src/*.cpp src/*.hpp tests/*.cpp
-    black --check --quiet tools/*.py tests/*.py
     gersemi --check CMakeLists.txt
     shellcheck tools/*.sh tools/hooks/pre-commit
     tools/check-text.sh
@@ -72,7 +72,7 @@ pull-logs:
 sync:
     PI_HOST={{pi}} tools/sync-to-pi.sh
 
-# build, then run the c++ unit tests and the decoder's tests
+# build, then run the c++ unit tests and the python tools' tests
 test: build
     ctest --test-dir build --output-on-failure
     python3 -m unittest discover --start-directory tests --pattern '*_test.py'
