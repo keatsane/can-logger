@@ -105,7 +105,7 @@ python3 tools/car_info.py | tee ~/logs/car-info.txt
 
 The record format is documented at the top of `src/record.hpp`: 28 bytes, little-endian, with a sequence number and a CRC-32.
 
-`tools/decode_log.py` checks a log and writes CSV. Problems and a summary go to stderr: bad CRCs, gaps in the sequence numbers, and a record cut off at the end of the file. After damage it finds the next record by searching for the `CL` marker.
+`tools/decode_log.py` checks a log and writes CSV. Problems and a summary go to stderr: records with a bad CRC, marker or version, gaps in the sequence numbers, and a record cut off at the end of the file. After damage it finds the next record by searching for the `CL` marker.
 
 ```
 just pull-logs

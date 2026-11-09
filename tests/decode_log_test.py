@@ -13,8 +13,8 @@ SIZE = 28
 VALUE_OFFSET = 16
 
 
-def record(seq, pid=0x0C, value=1000.0, time_us=1_000_000):
-    head = struct.pack("<2sBBIQd", b"CL", 1, pid, seq, time_us, value)
+def record(seq, pid=0x0C, value=1000.0, time_us=1_000_000, magic=b"CL", version=1):
+    head = struct.pack("<2sBBIQd", magic, version, pid, seq, time_us, value)
     return head + struct.pack("<I", zlib.crc32(head))
 
 
@@ -97,6 +97,17 @@ class DecodeLog(unittest.TestCase):
         data[SIZE + 3] ^= 0xFF
         _, err = decode(data)
         self.assertEqual(err[-1], "2 good, 2 bad, 1 missing")
+
+    # the crc is right in both, so only the marker and version checks can catch them
+    def test_wrong_marker_is_rejected(self):
+        _, err = decode(record(0) + record(1, magic=b"XX") + record(2))
+        self.assertIn("bad record at byte 28", err)
+        self.assertEqual(err[-1], "2 good, 1 bad, 1 missing")
+
+    def test_unknown_version_is_rejected(self):
+        _, err = decode(record(0) + record(1, version=2) + record(2))
+        self.assertIn("bad record at byte 28", err)
+        self.assertEqual(err[-1], "2 good, 1 bad, 1 missing")
 
 
 if __name__ == "__main__":

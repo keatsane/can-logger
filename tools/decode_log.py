@@ -11,6 +11,8 @@ import zlib
 RECORD_FORMAT = "<2s2BIQdI"
 RECORD_SIZE = struct.calcsize(RECORD_FORMAT)
 CRC_BYTES = 24  # crc covers first 24 bytes
+MAGIC = b"CL"
+VERSION = 1  # the only record layout this decoder knows
 
 
 def decode_log(path):
@@ -24,7 +26,7 @@ def decode_log(path):
             print(f"partial record found at byte {pos}", file=sys.stderr)
             break
         magic, version, pid, seq, time_us, value, crc = struct.unpack(RECORD_FORMAT, record)
-        if zlib.crc32(record[:CRC_BYTES]) != crc:
+        if magic != MAGIC or version != VERSION or zlib.crc32(record[:CRC_BYTES]) != crc:
             bad += 1
             print(f"bad record at byte {pos}", file=sys.stderr)
             pos = data.find(b"CL", pos + 1)
