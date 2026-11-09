@@ -11,11 +11,11 @@ _default:
 asan:
     cmake -S . -B build-asan -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer" "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined"
     cmake --build build-asan --target unit_tests
-    setarch -R ctest --test-dir build-asan --output-on-failure
+    setarch -R ctest --test-dir build-asan --output-on-failure --no-tests=error
 
-# configure (only does work the first time or after CMakeLists.txt changes) and compile
+# configure (only does work the first time or after CMakeLists.txt changes) and compile. warnings are errors here
 build:
-    cmake -S . -B build
+    cmake -S . -B build -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
     cmake --build build
 
 # what the pre-commit hook runs: lint is clean and the tests pass plain and under each sanitizer
@@ -72,13 +72,13 @@ pull-logs:
 sync:
     PI_HOST={{pi}} tools/sync-to-pi.sh
 
-# build, then run the c++ unit tests and the python tools' tests
+# build, then run the c++ unit tests and the python tools' tests. fails if googletest is missing and no c++ tests ran
 test: build
-    ctest --test-dir build --output-on-failure
+    ctest --test-dir build --output-on-failure --no-tests=error
     python3 -m unittest discover --start-directory tests --pattern '*_test.py'
 
 # the unit tests again under threadsanitizer, which fails on any data race between threads
 tsan:
     cmake -S . -B build-tsan -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=-fsanitize=thread -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread
     cmake --build build-tsan --target unit_tests
-    setarch -R ctest --test-dir build-tsan --output-on-failure
+    setarch -R ctest --test-dir build-tsan --output-on-failure --no-tests=error
