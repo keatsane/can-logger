@@ -38,3 +38,6 @@ Working in car, validated on one drive. On 2026-11-04 it logged 21.3 minutes in 
 On the bench, the logger polls a fake ECU, shuts down cleanly and recovers from failures under systemd. A one-hour run wrote 15,742 records that decoded with 0 bad and 0 missing. See [docs/bench.md](docs/bench.md) for the setup and measurements and [docs/bom.md](docs/bom.md) for parts.
 
 ![Plots from the drive](docs/drive/drive.png)
+
+## License
+MIT. See [LICENSE](LICENSE).
