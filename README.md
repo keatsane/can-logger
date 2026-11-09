@@ -17,6 +17,21 @@ The logger uses OBD-II over CAN at 500 kbit/s with 11-bit IDs, and talks to the 
 - Which PIDs a car answers varies. `tools/car_info.py` lists them, and one the car doesn't support shows up as a missing or bad reply.
 - On a new car, follow the order in [docs/car.md](docs/car.md), starting with listen-only. A controller in normal mode at the wrong bit rate can disrupt the bus.
 
+## Building
+The logger builds on the Pi or on any Linux PC with a C++20 compiler and CMake 3.16 or newer. SocketCAN and ISO-TP come from the kernel headers, so the logger has no other dependencies. Running it needs the kernel's `can_isotp` module and the interfaces set up as in [docs/bench.md](docs/bench.md). The routine commands are recipes in the `justfile`, and `just` with no arguments lists them.
+
+```
+just build   # configure and compile into build/
+just check   # lint, then the tests plain and under TSan and ASan/UBSan
+just hooks   # once per clone: run just check before every commit
+just test    # the C++ unit tests and the Python tools' tests
+```
+
+- Formatting: `just lint` and `just format` need black, clang-format, gersemi and shellcheck. The tree is formatted with black 26, clang-format 18 and gersemi 0.29.
+- GoogleTest (`libgtest-dev`) is needed for the unit tests. Without it only the logger and the probe are built, which is how the Pi builds them.
+- Pi recipes (`just fake-ecu`, `just logger`, `just pi-build`, `just pi-install`, `just probe`) copy the tree over SSH and build there. `PI_HOST` sets the target. These and `config/systemd/can-logger.service` assume a user named `keating` on the Pi.
+- Python 3.10 or newer runs the tools. `tools/drive_report.py` also needs matplotlib 3.6 or newer.
+
 ## Status
 Working in car, validated on one drive. On 2026-11-04 it logged 21.3 minutes in a 2017 Audi A4: 5,633 records from nine PIDs, which decoded with 0 bad and 0 missing, with 0 restarts. See the [drive report](docs/drive/report.md) and [docs/car.md](docs/car.md) for the results.
 
