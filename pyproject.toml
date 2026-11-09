@@ -1,3 +1,4 @@
 # python formatting, for `just format` and `just lint`
 [tool.black]
 line-length = 100
+required-version = "26"
