@@ -21,7 +21,6 @@ constexpr uint8_t kServiceCurrentData = 0x01;
 constexpr uint8_t kReplyOffset = 0x40;  // positive reply = service + 0x40
 
 namespace pid {
-constexpr uint8_t kSupported = 0x00;
 constexpr uint8_t kEngineLoad = 0x04;
 constexpr uint8_t kCoolant = 0x05;
 constexpr uint8_t kShortTermFuelTrim = 0x06;

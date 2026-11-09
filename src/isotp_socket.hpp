@@ -35,7 +35,7 @@ public:
      * @param buf where the message is stored; the caller owns it
      * @param timeout_ms how long to wait
      * @return the part of buf holding the message, or std::nullopt on timeout
-     * @throws std::system_error if poll or read fails
+     * @throws std::system_error if poll or recv fails
      */
     std::optional<std::span<const uint8_t>> receive(std::span<uint8_t> buf, int timeout_ms);
 

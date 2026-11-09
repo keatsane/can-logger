@@ -1,4 +1,3 @@
-
 #include "log_file.hpp"
 
 #include <fcntl.h>
