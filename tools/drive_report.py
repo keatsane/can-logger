@@ -38,13 +38,13 @@ PANELS = (
 
 CAR_INFO_KEEP = ("pending dtcs:", "stored dtcs:", "supported pids:")
 
-# chart colors: series, then surface and ink
-SERIES_COLORS = ("#2a78d6", "#eb6834")
-SURFACE = "#fcfcfb"
-INK = "#0b0b0b"
-INK_SECONDARY = "#52514e"
-INK_MUTED = "#898781"
-GRID = "#e1e0d9"
+# plot colors
+AXIS_COLOR = "#898781"
+BACKGROUND = "#fcfcfb"
+GRID_COLOR = "#e1e0d9"
+LABEL_COLOR = "#52514e"
+LINE_COLORS = ("#2a78d6", "#eb6834")
+TITLE_COLOR = "#0b0b0b"
 
 
 def read_log(path):
@@ -142,19 +142,19 @@ def plot(readings, path):
         squeeze=False,
         figsize=(10, 1.9 * len(panels) + 0.6),
         layout="constrained",
-        facecolor=SURFACE,
+        facecolor=BACKGROUND,
     )
     for ax, (title, pids) in zip(axes[:, 0], panels):
-        ax.set_facecolor(SURFACE)
-        ax.set_title(title, loc="left", fontsize=10, color=INK)
-        ax.grid(axis="y", color=GRID, linewidth=0.6)
+        ax.set_facecolor(BACKGROUND)
+        ax.set_title(title, loc="left", fontsize=10, color=TITLE_COLOR)
+        ax.grid(axis="y", color=GRID_COLOR, linewidth=0.6)
         ax.set_axisbelow(True)
-        ax.tick_params(colors=INK_MUTED, labelsize=8, length=0)
+        ax.tick_params(colors=AXIS_COLOR, labelsize=8, length=0)
         for side in ("top", "right", "left"):
             ax.spines[side].set_visible(False)
-        ax.spines["bottom"].set_color(INK_MUTED)
+        ax.spines["bottom"].set_color(AXIS_COLOR)
         ax.margins(x=0)
-        for pid, color in zip(pids, SERIES_COLORS):
+        for pid, color in zip(pids, LINE_COLORS):
             if pid in readings:
                 t, values = zip(*readings[pid])
                 ax.plot([s / 60 for s in t], values, color=color, linewidth=1.2, label=PIDS[pid][0])
@@ -165,10 +165,10 @@ def plot(readings, path):
                 ncols=len(pids),
                 frameon=False,
                 fontsize=8,
-                labelcolor=INK_SECONDARY,
+                labelcolor=LABEL_COLOR,
                 borderaxespad=0,
             )
-    axes[-1, 0].set_xlabel("Minutes since logging started", fontsize=9, color=INK_SECONDARY)
+    axes[-1, 0].set_xlabel("Minutes since logging started", fontsize=9, color=LABEL_COLOR)
     fig.savefig(path, dpi=150)
     plt.close(fig)
 
