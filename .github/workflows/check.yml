@@ -1,0 +1,24 @@
+# the same check the pre-commit hook runs
+name: check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang-format cmake g++ just libgtest-dev shellcheck
+          pipx install black==26.10.1
+          pipx install gersemi==0.29.2
+      - name: just check
+        run: just check

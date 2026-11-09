@@ -18,7 +18,7 @@ The logger uses OBD-II over CAN at 500 kbit/s with 11-bit IDs, and talks to the 
 - On a new car, follow the order in [docs/car.md](docs/car.md), starting with listen-only. A controller in normal mode at the wrong bit rate can disrupt the bus.
 
 ## Building
-The logger builds on the Pi or on any Linux PC with a C++20 compiler and CMake 3.16 or newer. SocketCAN and ISO-TP come from the kernel headers, so the logger has no other dependencies. Running it needs the kernel's `can_isotp` module and the interfaces set up as in [docs/bench.md](docs/bench.md). The routine commands are recipes in the `justfile`, and `just` with no arguments lists them.
+The logger builds on the Pi or on any Linux PC with a C++20 compiler and CMake 3.16 or newer. SocketCAN and ISO-TP come from the kernel headers, so the logger has no other dependencies. Running it needs the kernel's `can_isotp` module and the interfaces set up as in [docs/bench.md](docs/bench.md). The routine commands are recipes in the `justfile`, and `just` with no arguments lists them. GitHub Actions runs `just check` on every push.
 
 ```
 just build   # configure and compile into build/
