@@ -1,13 +1,12 @@
-#!/usr/bin/env python3
-"""Fake engine ECU for bench testing.
+"""
+Fake engine ecu for bench testing.
 
-Answers standard OBD-II requests on a SocketCAN interface the way an engine ECU
-would: live data that changes over time like a short drive (service 0x01), stored
-and pending trouble codes (0x03, 0x07) and a multi-frame VIN (0x09). Any request
-outside the allowed read-only OBD-II services (0x01, 0x02, 0x03, 0x07, 0x09) is
-flagged, since nothing here may ever send one.
+Answers standard obd-ii requests on a socketcan interface the way an engine ecu would: live data
+that changes over time like a short drive (service 0x01), stored and pending trouble codes (0x03,
+0x07) and a multi-frame vin (0x09). Any request outside the allowed read-only obd-ii services
+(0x01, 0x02, 0x03, 0x07, 0x09) is flagged, since nothing here may ever send one.
 
-    python3 tools/fake_ecu.py can_ecu
+usage: fake_ecu.py [-q] [interface]
 """
 
 import argparse
@@ -158,7 +157,7 @@ def send_message(sock, can_id, payload):
 
 
 def handle(sock, can_id, data, t, counts, quiet):
-    """Answer one request frame. Returns nothing; updates counts."""
+    """Answer one request frame and count what happened to it."""
     req = f"{can_id:03X} {data.hex(' ').upper()}"
     if len(data) != FRAME_SIZE:
         counts["unanswered"] += 1
