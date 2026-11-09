@@ -136,24 +136,24 @@ sudo systemctl stop can-logger
 
 ## Measurements (2026-11-01)
 
-- **Bit time: 2.0 us**, matching 500 kbit/s. Measured on a Siglent SDS804X HD with CH1 on CAN-H, CH2 on CAN-L and the math trace CH1 - CH2, using time cursors across a single bit. Both channels share the overlay's oscillator setting, so they would agree with each other even if it were wrong; the scope checks it independently.
-- **Bit timing chosen by the kernel** (`ip -details link show`): 125 ns time quantum (16 MHz crystal / 2), 16 quanta per bit, sample point 87.5%.
-- **Scope CAN decode** at 500 kbit/s read the request as ID 0x7DF, length 8.
-- **Terminal mapping:** with the link wires removed, a frame sent on `can_obd` gets no acknowledgment and is retransmitted continuously; the retransmissions appear on the CAN0 terminal and not on CAN1.
+- Bit time: 2.0 us, matching 500 kbit/s. Measured on a Siglent SDS804X HD with CH1 on CAN-H, CH2 on CAN-L and the math trace CH1 - CH2, using time cursors across a single bit. Both channels share the overlay's oscillator setting, so they would agree with each other even if it were wrong; the scope checks it independently.
+- Bit timing chosen by the kernel (`ip -details link show`): 125 ns time quantum (16 MHz crystal / 2), 16 quanta per bit, sample point 87.5%.
+- Scope CAN decode at 500 kbit/s read the request as ID 0x7DF, length 8.
+- Terminal mapping: with the link wires removed, a frame sent on `can_obd` gets no acknowledgment and is retransmitted continuously; the retransmissions appear on the CAN0 terminal and not on CAN1.
 
 ## Logger measurements (2026-11-03)
 
 All against the fake ECU.
 
-- **Poll rate, nine PIDs:** a 16.0-minute run under systemd wrote 4,238 records at 4.41 records/s, decoded with 0 bad and 0 missing, and the fake ECU answered 4,238 requests and flagged none. There were 0 restarts and `vcgencmd get_throttled` read `0x0`. Records were 201 to 593 ms apart. Measured from the log, the 1 s PIDs averaged 1.09 s (worst 1.81 s), the 2 s PIDs 2.08 s (worst 2.59 s), the 5 s PIDs 5.02 s and the 10 s PID 10.04 s. They run slightly long because each period restarts from when the request was actually sent.
-- **Car info:** `tools/car_info.py` against the fake ECU read back all ten supported PIDs across two ranges, the multi-frame VIN and three stored trouble codes, with the kernel's ISO-TP socket handling flow control.
-- **One-hour run, with the earlier table of coolant, RPM and speed:** 61.6 minutes under systemd wrote 15,742 records at 4.26 records/s, and the log decoded with 0 bad and 0 missing. The fake ECU answered 15,742 requests and flagged none. There were 0 restarts, `vcgencmd get_throttled` read `0x0` at the end, and the logger used 2.6 s of CPU. Time between records stayed between 200.8 and 301.9 ms, so the 200 ms minimum spacing held. The log came to 441 KB.
-- **Record integrity:** a 36-record log stopped with `pkill -TERM` decoded with 0 bad and 0 missing. Decoder behavior on damaged files is covered by `tests/decode_log_test.py`.
-- **Interface failure:** `sudo ip link set can_obd down` stopped the logger with `Network is down` and exit code 1. systemd retried every 5 s, and the logger recovered on its own once the interface came back up.
-- **Silent bus:** with the fake ECU stopped for about 15 s and then about 20 s, `sent` kept rising, `replies` froze, and the watchdog did not fire. Replies resumed when it restarted. The other channel was still up and acknowledging frames.
-- **Hang:** `pkill -STOP logger` froze the whole process, and systemd reported `Watchdog timeout` 10 s after the last status line.
-- **One stuck thread:** with a temporary long sleep in the poller, `sent` froze while the writer kept printing status lines. The watchdog fired 11 s after the start and systemd restarted the logger.
-- **Nothing acknowledging:** with `can_ecu` down, the logger stopped within about 2 s with `Communication error on send` and exit code 1. `can_obd` went to error-passive.
-- **Bus errors:** with `can_ecu` at 250 kbit/s against `can_obd` at 500 kbit/s, the logger stopped the same way and `can_obd` went bus-off. `restart-ms` is 0, so it stays off the bus until someone restarts the interface.
-- **Disk full:** on a 16 KB tmpfs (the smallest possible with this kernel's 16 KB pages), the logger stopped with `writer: write: Input/output error` and exit code 1. The file decoded to 585 good records, 0 bad, 0 missing, and a partial record at byte 16380.
-- **Hardware watchdog:** with `kernel.panic` at 0, a kernel crash through `/proc/sysrq-trigger` rebooted the Pi on its own, and both CAN interfaces came back up.
+- Poll rate, nine PIDs: a 16.0-minute run under systemd wrote 4,238 records at 4.41 records/s, decoded with 0 bad and 0 missing, and the fake ECU answered 4,238 requests and flagged none. There were 0 restarts and `vcgencmd get_throttled` read `0x0`. Records were 201 to 593 ms apart. Measured from the log, the 1 s PIDs averaged 1.09 s (worst 1.81 s), the 2 s PIDs 2.08 s (worst 2.59 s), the 5 s PIDs 5.02 s and the 10 s PID 10.04 s. They run slightly long because each period restarts from when the request was actually sent.
+- Car info: `tools/car_info.py` against the fake ECU read back all ten supported PIDs across two ranges, the multi-frame VIN and three stored trouble codes, with the kernel's ISO-TP socket handling flow control.
+- One-hour run, with the earlier table of coolant, RPM and speed: 61.6 minutes under systemd wrote 15,742 records at 4.26 records/s, and the log decoded with 0 bad and 0 missing. The fake ECU answered 15,742 requests and flagged none. There were 0 restarts, `vcgencmd get_throttled` read `0x0` at the end, and the logger used 2.6 s of CPU. Time between records stayed between 200.8 and 301.9 ms, so the 200 ms minimum spacing held. The log came to 441 KB.
+- Record integrity: a 36-record log stopped with `pkill -TERM` decoded with 0 bad and 0 missing. Decoder behavior on damaged files is covered by `tests/decode_log_test.py`.
+- Interface failure: `sudo ip link set can_obd down` stopped the logger with `Network is down` and exit code 1. systemd retried every 5 s, and the logger recovered on its own once the interface came back up.
+- Silent bus: with the fake ECU stopped for about 15 s and then about 20 s, `sent` kept rising, `replies` froze, and the watchdog did not fire. Replies resumed when it restarted. The other channel was still up and acknowledging frames.
+- Hang: `pkill -STOP logger` froze the whole process, and systemd reported `Watchdog timeout` 10 s after the last status line.
+- One stuck thread: with a temporary long sleep in the poller, `sent` froze while the writer kept printing status lines. The watchdog fired 11 s after the start and systemd restarted the logger.
+- Nothing acknowledging: with `can_ecu` down, the logger stopped within about 2 s with `Communication error on send` and exit code 1. `can_obd` went to error-passive.
+- Bus errors: with `can_ecu` at 250 kbit/s against `can_obd` at 500 kbit/s, the logger stopped the same way and `can_obd` went bus-off. `restart-ms` is 0, so it stays off the bus until someone restarts the interface.
+- Disk full: on a 16 KB tmpfs (the smallest possible with this kernel's 16 KB pages), the logger stopped with `writer: write: Input/output error` and exit code 1. The file decoded to 585 good records, 0 bad, 0 missing, and a partial record at byte 16380.
+- Hardware watchdog: with `kernel.panic` at 0, a kernel crash through `/proc/sysrq-trigger` rebooted the Pi on its own, and both CAN interfaces came back up.
